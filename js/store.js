@@ -92,7 +92,9 @@ function carregar() {
   const raw2 = localStorage.getItem(KEY);
   if (raw2) {
     const e = JSON.parse(raw2);
-    if (!e.categorias) e.categorias = CATS_PADRAO.slice();
+    if (!Array.isArray(e.categorias)) e.categorias = [];
+    // Fixos e Básicos sempre existem no cadastro (sem duplicar).
+    CATS_PADRAO.slice().reverse().forEach(c => { if (!e.categorias.some(x => x.id === c.id)) e.categorias.unshift({...c}); });
     return e;
   }
   const raw1 = localStorage.getItem(KEY_V01);

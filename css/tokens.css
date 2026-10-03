@@ -126,3 +126,11 @@ body.selecionando { padding-bottom: 150px; }
   font-size: .86rem; font-weight: 700; box-shadow: 0 8px 24px rgba(0,0,0,.18); border: 1px solid var(--line); }
 .toast.ok { background: var(--ok-bg); color: var(--ok); }
 .toast.nok { background: var(--nok-bg); color: var(--nok); }
+/* Categorias do mês no formulário */
+.tipo.add { border-style: dashed; color: var(--muted); font-weight: 750; }
+.cat-nova { display: flex; gap: 8px; align-items: stretch; }
+.cat-nova input { flex: 1; min-width: 0; }
+.cat-nova .btn { flex: none; }
+.cat-aviso { margin: 8px 0 0; }
+.cat-aviso[hidden] { display: none; }
+.nok-txt { color: var(--nok); }

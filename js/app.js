@@ -7,6 +7,8 @@ let editando = null;
 let tipoSel = "basico";
 let formaSel = "Pix";
 let selecao = null; // Set com os meses marcados no modo de seleção (aba Meses)
+let catsExtraForm = new Set(); // categorias trazidas pelo "+ Categoria" enquanto o formulário está aberto
+const dlgCat = document.getElementById("dlgCat");
 
 function lista() {
   if (!estado.meses[atual]) estado.meses[atual] = [];
@@ -175,8 +177,8 @@ function pintarchips(boxId, opcoes, campo) {
     const id = o.id || o;
     const nome = o.nome || o;
     const on = (campo==="tipo" ? tipoSel : formaSel) === id ? "on" : "";
-    return `<div class="tipo ${on}" data-id="${id}" onclick="pick('${campo}','${id}', this)">${esc(nome)}</div>`;
-  }).join("");
+    return `<div class="tipo ${on}" data-id="${esc(id)}" onclick="pick('${campo}','${esc(id)}', this)">${esc(nome)}</div>`;
+  }).join("") + (campo === "tipo" ? `<div class="tipo add" id="btnCatMais" onclick="abrirCategorias()">+ Categoria</div>` : "");
 }
 function pick(campo, id, el) {
   if (campo === "tipo") tipoSel = id;
@@ -184,15 +186,70 @@ function pick(campo, id, el) {
   el.parentElement.querySelectorAll(".tipo").forEach(t => t.classList.remove("on"));
   el.classList.add("on");
 }
-function novaCategoria() {
-  const nome = prompt("Nome da categoria (ex.: Feira, Farmácia, Pet)");
-  if (!nome || !nome.trim()) return;
-  const id = nome.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-");
-  if (cats().some(c => c.id === id)) { alert("Essa categoria já existe."); return; }
-  cats().push({id, nome: nome.trim()});
+/* ---------- Categorias por mês ---------- */
+// O cadastro de categorias é um só (estado.categorias). Cada mês mostra só Fixos, Básicos e as usadas nele.
+function normNome(s) {
+  return String(s || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
+}
+function idsCatsForm() {
+  const ids = new Set(CATS_PADRAO.map(c => c.id));
+  lista().forEach(i => { if (i.tipo) ids.add(i.tipo); });
+  if (editando != null && lista()[editando] && lista()[editando].tipo) ids.add(lista()[editando].tipo);
+  catsExtraForm.forEach(id => ids.add(id));
+  if (tipoSel) ids.add(tipoSel);
+  return ids;
+}
+function catsForm() {
+  const ids = idsCatsForm();
+  const out = cats().filter(c => ids.has(c.id));
+  ids.forEach(id => { if (!out.some(c => c.id === id)) out.push({id, nome: catNome(id)}); });
+  return out;
+}
+function pintarCatsForm() { pintarchips("catsBox", catsForm(), "tipo"); }
+function avisoCat(msg) {
+  const el = document.getElementById("catAviso");
+  el.textContent = msg || "";
+  el.hidden = !msg;
+}
+function abrirCategorias() {
+  const ids = idsCatsForm();
+  const outras = cats().filter(c => !ids.has(c.id));
+  const box = document.getElementById("jaUsadasBox");
+  box.innerHTML = outras.length
+    ? outras.map(c => `<div class="tipo" data-id="${esc(c.id)}" onclick="usarCategoria('${esc(c.id)}')">${esc(c.nome)}</div>`).join("")
+    : `<p class="hint" style="margin:0">Nenhuma outra categoria ainda. Crie uma abaixo.</p>`;
+  document.getElementById("fCatNome").value = "";
+  document.getElementById("catErro").hidden = true;
+  dlgCat.showModal();
+}
+function usarCategoria(id, msg = "") {
+  catsExtraForm.add(id);
   tipoSel = id;
+  if (dlgCat.open) dlgCat.close();
+  pintarCatsForm();
+  avisoCat(msg);
+}
+function slugCat(nome) {
+  return normNome(nome).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "categoria";
+}
+function criarCategoria(e) {
+  e.preventDefault();
+  const input = document.getElementById("fCatNome");
+  const nome = input.value.trim().replace(/\s+/g, " ");
+  const erro = document.getElementById("catErro");
+  if (!nome) { erro.textContent = "Digite o nome da categoria."; erro.hidden = false; input.focus(); return; }
+  const chave = normNome(nome);
+  const existente = cats().find(c => normNome(c.nome) === chave);
+  if (existente) {
+    usarCategoria(existente.id, `“${existente.nome}” já existia e foi usada de novo.`);
+    return;
+  }
+  let id = slugCat(nome), n = 2;
+  const base = id;
+  while (cats().some(c => c.id === id)) id = base + "-" + (n++);
+  cats().push({id, nome});
   persist();
-  pintarchips("catsBox", cats(), "tipo");
+  usarCategoria(id, `Categoria “${nome}” criada.`);
 }
 function abrirForm(idx=null) {
   editando = idx;
@@ -206,8 +263,10 @@ function abrirForm(idx=null) {
   fRepete.checked = !!it.repete;
   tipoSel = it.tipo || "basico";
   formaSel = it.forma || "Pix";
+  catsExtraForm = new Set();
+  avisoCat("");
   pintarchips("formasBox", FORMAS, "forma");
-  pintarchips("catsBox", cats(), "tipo");
+  pintarCatsForm();
   btnApagar.hidden = idx==null;
   dlg.showModal();
 }
@@ -220,7 +279,7 @@ function salvarItem(e) {
   e.preventDefault();
   const novo = item(fNome.value.trim(), parseMoney(fValor.value), fStatus.value, tipoSel, fData.value, formaSel, fRepete.checked, fObs.value.trim());
   if (editando==null) lista().push(novo);
-  else { novo.id = lista()[editando].id; lista()[editando] = novo; }
+  else { const velho = lista()[editando]; lista()[editando] = {...velho, ...novo, id: velho.id}; }
   persist(); dlg.close(); render();
 }
 function apagarItem() {
@@ -237,14 +296,60 @@ function proxKey() {
   const d = new Date(y, m, 1);
   return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
 }
-function copiarProx() {
-  const dest = proxKey();
+function dataNoMes(iso, mes) {
+  if (!iso) return "";
+  const [y, m] = mes.split("-").map(Number);
+  const ultimo = new Date(y, m, 0).getDate();
+  const d = Math.min(Number(iso.split("-")[2]) || 1, ultimo);
+  return `${mes}-${String(d).padStart(2,"0")}`;
+}
+function mesmaConta(a, b) {
+  return normNome(a.nome) === normNome(b.nome) && (a.tipo || "") === (b.tipo || "") && Number(a.valor || 0) === Number(b.valor || 0);
+}
+function plural(n, um, varios) { return n + " " + (n === 1 ? um : varios); }
+async function copiarProx() {
+  const orig = atual, dest = proxKey();
+  const src = lista();
+  const cand = src.filter(i => i.repete || i.status !== "pago");
+  if (!cand.length) {
+    aviso(`${tituloMes(orig)} não tem contas com repete nem pendentes.`, "nok");
+    return;
+  }
+  const ok = await perguntar(`Copiar para ${tituloMes(dest)}?`,
+    `Vão as contas com repete (como pendentes) e as que ainda não foram pagas. ` +
+    `As pendentes sem repete saem de ${tituloMes(orig)} e passam para ${tituloMes(dest)}, para não contar duas vezes. ` +
+    `Contas que já estão em ${tituloMes(dest)} não são copiadas de novo.`, [
+      {rotulo: "Cancelar", classe: "ghost", valor: null},
+      {rotulo: "Copiar", classe: "main", valor: "copiar"}
+    ]);
+  if (ok !== "copiar") return;
   if (!estado.meses[dest]) estado.meses[dest] = [];
-  const clones = lista().filter(i => i.repete || i.status!=="pago")
-    .map(i => ({...i, id: crypto.randomUUID(), status: "pendente"}));
-  estado.meses[dest].push(...clones);
+  const alvo = estado.meses[dest];
+  let copiadas = 0, movidas = 0, existiam = 0;
+  const sair = new Set();
+  cand.forEach(i => {
+    const mover = !i.repete; // pendente sem repete: muda de mês
+    const jaTem = alvo.some(d => d.id === i.id || d.origemId === i.id || mesmaConta(d, i));
+    if (jaTem) {
+      existiam++;
+      if (mover) sair.add(i); // já está no próximo mês: não conta duas vezes
+      return;
+    }
+    if (mover) {
+      alvo.push({...i, status: "pendente", data: dataNoMes(i.data, dest), origemId: i.origemId || i.id});
+      sair.add(i); movidas++;
+    } else {
+      alvo.push({...i, id: crypto.randomUUID(), status: "pendente", data: dataNoMes(i.data, dest), origemId: i.id});
+      copiadas++;
+    }
+  });
+  estado.meses[orig] = src.filter(i => !sair.has(i));
   atual = dest; persist(); ir("mes");
-  alert("Copiado para " + tituloMes(dest));
+  const partes = [];
+  if (copiadas) partes.push(plural(copiadas, "conta copiada", "contas copiadas"));
+  if (movidas) partes.push(plural(movidas, "conta movida", "contas movidas"));
+  if (existiam) partes.push(existiam === 1 ? "1 já existia" : existiam + " já existiam");
+  aviso(partes.length ? partes.join(", ") + "." : "Nada novo para copiar.", "ok");
 }
 function hojeISO() {
   const d = new Date();
@@ -263,7 +368,7 @@ function exportarBackup() {
 }
 function exportarExcel() {
   if (typeof XLSX === "undefined") {
-    alert("Para o Excel precisa de internet na primeira vez. Sem rede, use a cópia de segurança.");
+    aviso("Para o Excel precisa de internet na primeira vez. Sem rede, use o Exportar backup.", "nok");
     return;
   }
   const ano = atual.slice(0,4);

@@ -56,7 +56,7 @@
       <div class="tipos" id="formasBox"></div>
       <label>Categoria</label>
       <div class="tipos" id="catsBox"></div>
-      <button type="button" class="btn ghost" style="margin-top:8px" onclick="novaCategoria()">+ Nova categoria</button>
+      <p class="hint cat-aviso" id="catAviso" hidden></p>
       <label>Observação</label>
       <input id="fObs" />
       <label><input type="checkbox" id="fRepete" style="width:auto" /> Repete todo mês</label>
@@ -73,6 +73,22 @@
       <p class="hint" id="confTexto" style="margin:0"></p>
       <div class="actions" id="confAcoes"></div>
     </div>
+  </dialog>
+  <dialog id="dlgCat">
+    <form class="sheet" onsubmit="criarCategoria(event)">
+      <h2>Categoria</h2>
+      <label>Já usadas</label>
+      <div class="tipos" id="jaUsadasBox"></div>
+      <label for="fCatNome">Nova categoria</label>
+      <div class="cat-nova">
+        <input id="fCatNome" placeholder="Feira, Farmácia, Pet…" autocomplete="off" />
+        <button class="btn main">Criar</button>
+      </div>
+      <p class="hint cat-aviso nok-txt" id="catErro" hidden></p>
+      <div class="actions">
+        <button type="button" class="btn ghost" onclick="dlgCat.close()">Cancelar</button>
+      </div>
+    </form>
   </dialog>
   <div class="selbar" id="selbar" hidden>
     <span class="selbar-n" id="selN">0 selecionados</span>
