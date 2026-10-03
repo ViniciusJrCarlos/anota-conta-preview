@@ -1,4 +1,4 @@
-const KEY = "anota-conta-v02-preview-2023";
+const KEY = "anota-conta-v02-preview-2023b";
 const KEY_V01 = "anota-conta-v01";
 const MESES = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 const FORMAS = ["Pix","Débito","Crédito","Dinheiro","Outro"];
@@ -7,7 +7,8 @@ const CATS_PADRAO = [
   {id:"basico", nome:"Básicos"},
   {id:"entretenimento", nome:"Entretenimento"},
   {id:"feira", nome:"Feira"},
-  {id:"mercado", nome:"Mercado"}
+  {id:"mercado", nome:"Mercado"},
+  {id:"educacao", nome:"Educação"}
 ];
 
 function mesHoje() {
@@ -27,11 +28,11 @@ function seed() {
     categorias: CATS_PADRAO.slice(),
     meses: {
       "2023-07": [
-        item("Luz", 100, "pago", "basico", "", "Débito", true),
+        item("Luz", 100, "pago", "fixo", "", "Débito", true),
         item("Condomínio", 250, "pago", "fixo", "", "Débito", true),
         item("Internet", 109, "pago", "fixo", "", "Débito", true),
-        item("Faculdade", 80, "pago", "fixo", "", "Débito", true),
-        item("Celular (recarga)", 65, "pago", "basico", "", "Débito", true)
+        item("Faculdade", 80, "pago", "educacao", "", "Débito", true),
+        item("Celular (recarga)", 65, "pago", "fixo", "", "Débito", true)
       ]
     }
   };
