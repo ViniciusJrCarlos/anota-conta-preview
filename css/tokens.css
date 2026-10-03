@@ -134,3 +134,12 @@ body.selecionando { padding-bottom: 150px; }
 .cat-aviso { margin: 8px 0 0; }
 .cat-aviso[hidden] { display: none; }
 .nok-txt { color: var(--nok); }
+/* Telas grandes com mouse (notebook/PC): coluna centralizada com bordas e cards/filtros quebrando linha */
+@media (min-width: 760px) {
+  .app { min-height: 100vh; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+  nav.tab { border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+}
+@media (min-width: 600px) and (hover: hover) and (pointer: fine) {
+  .stats { grid-auto-flow: row; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); overflow: visible; }
+  .chips { flex-wrap: wrap; overflow: visible; }
+}
