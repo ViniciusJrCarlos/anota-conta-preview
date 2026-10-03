@@ -17,7 +17,15 @@ function cats() {
 }
 function catNome(id) {
   const c = cats().find(x => x.id === id);
-  return c ? c.nome : id;
+  if (c) return c.nome;
+  const s = String(id || "");
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : "Sem categoria";
+}
+function catsDoMes(items) {
+  const usados = new Set(items.map(i => i.tipo));
+  const lista = cats().filter(c => usados.has(c.id));
+  usados.forEach(id => { if (!lista.some(c => c.id === id)) lista.push({id, nome: catNome(id)}); });
+  return lista;
 }
 function persist() { persistir(estado, atual); }
 
@@ -51,9 +59,11 @@ function render() {
 }
 function viewMes() {
   const items = lista();
+  const usadas = catsDoMes(items);
+  if (filtro !== "todas" && !usadas.some(c => c.id === filtro)) filtro = "todas";
   const vis = items.filter(i => filtro === "todas" || i.tipo === filtro);
   const somaTipo = (id) => items.filter(i => i.tipo === id).reduce((a,b)=>a+Number(b.valor||0),0);
-  const top3 = cats().slice(0,3);
+  const totalMes = items.reduce((a,b)=>a+Number(b.valor||0),0);
   const htmlItems = vis.length ? vis.map(it => {
     const real = items.indexOf(it);
     const [lb, cls] = badge(it.status);
@@ -75,11 +85,12 @@ function viewMes() {
       <button class="nav-btn" onclick="shift(1)">›</button>
     </div>
     <div class="stats">
-      ${top3.map(c => `<div class="stat"><b>${money(somaTipo(c.id))}</b><span>${esc(c.nome)}</span><i></i></div>`).join("")}
+      ${usadas.map(c => `<div class="stat"><b>${money(somaTipo(c.id))}</b><span>${esc(c.nome)}</span><i></i></div>`).join("")}
+      <div class="stat total"><b>${money(totalMes)}</b><span>Total do mês</span><i></i></div>
     </div>
     <div class="chips">
       <button class="chip ${filtro==="todas"?"on":""}" onclick="filtro='todas';render()">Todas</button>
-      ${cats().map(c => `<button class="chip ${filtro===c.id?"on":""}" onclick="filtro='${c.id}';render()">${esc(c.nome)}</button>`).join("")}
+      ${usadas.map(c => `<button class="chip ${filtro===c.id?"on":""}" onclick="filtro='${esc(c.id)}';render()">${esc(c.nome)}</button>`).join("")}
     </div>
     <div class="list">${htmlItems}</div>`;
 }

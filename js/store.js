@@ -1,14 +1,10 @@
-const KEY = "anota-conta-v02-preview-2023d";
+const KEY = "anota-conta-v02-preview-2023e";
 const KEY_V01 = "anota-conta-v01";
 const MESES = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 const FORMAS = ["Pix","Débito","Crédito","Dinheiro","Outro"];
 const CATS_PADRAO = [
   {id:"fixo", nome:"Fixos"},
-  {id:"basico", nome:"Básicos"},
-  {id:"entretenimento", nome:"Entretenimento"},
-  {id:"feira", nome:"Feira"},
-  {id:"mercado", nome:"Mercado"},
-  {id:"educacao", nome:"Educação"}
+  {id:"basico", nome:"Básicos"}
 ];
 
 function mesHoje() {
@@ -25,7 +21,11 @@ function seed() {
     versao: 2,
     tema: "branca",
     mesAtual: "2023-07",
-    categorias: CATS_PADRAO.slice(),
+    categorias: CATS_PADRAO.slice().concat([
+      {id:"entretenimento", nome:"Entretenimento"},
+      {id:"educacao", nome:"Educação"},
+      {id:"feira", nome:"Feira"}
+    ]),
     meses: {
       "2023-07": [
         item("Luz", 100, "pago", "fixo", "", "Débito", true),

@@ -33,7 +33,9 @@ main { padding: 14px 16px 20px; }
 .month h1 { margin: 0; font-size: 1.15rem; letter-spacing: .4px; }
 .nav-btn { width: 40px; height: 40px; border: 1px solid var(--line); background: var(--card);
   color: var(--ink); border-radius: 12px; font-size: 20px; cursor: pointer; }
-.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.stats { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 16px) / 3); gap: 8px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
+.stat { scroll-snap-align: start; }
 .stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 8px; text-align: center; }
 .stat b { display: block; font-size: .95rem; }
 .stat span { color: var(--muted); font-size: .72rem; }
