@@ -1,4 +1,4 @@
-const KEY = "anota-conta-v02-preview-2023b";
+const KEY = "anota-conta-v02-preview-2023c";
 const KEY_V01 = "anota-conta-v01";
 const MESES = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 const FORMAS = ["Pix","Débito","Crédito","Dinheiro","Outro"];
@@ -33,6 +33,15 @@ function seed() {
         item("Internet", 109, "pago", "fixo", "", "Débito", true),
         item("Faculdade", 80, "pago", "educacao", "", "Débito", true),
         item("Celular (recarga)", 65, "pago", "fixo", "", "Débito", true)
+      ],
+      "2023-08": [
+        item("Luz", 35, "pago", "fixo", "", "Débito", true),
+        item("Condomínio", 250, "pago", "fixo", "", "Débito", true),
+        item("Internet", 109, "pago", "fixo", "", "Débito", true),
+        item("Faculdade", 80, "pago", "educacao", "", "Débito", true),
+        item("Celular (recarga)", 65, "pago", "fixo", "", "Débito", true),
+        item("Celular (recarga extra)", 30, "pago", "fixo", "", "Débito", false),
+        item("Assinaturas (Disney+ e Netflix)", 150, "pago", "entretenimento", "", "Débito", true)
       ]
     }
   };

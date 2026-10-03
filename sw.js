@@ -1,4 +1,4 @@
-const CACHE = "anota-conta-v02-3";
+const CACHE = "anota-conta-v02-4";
 const ASSETS = [
   "./",
   "./index.html",
