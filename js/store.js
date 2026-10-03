@@ -1,4 +1,4 @@
-const KEY = "anota-conta-v02-preview-2023e";
+const KEY = "anota-conta-v02-preview-2023f";
 const KEY_V01 = "anota-conta-v01";
 const MESES = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 const FORMAS = ["Pix","Débito","Crédito","Dinheiro","Outro"];
@@ -24,7 +24,9 @@ function seed() {
     categorias: CATS_PADRAO.slice().concat([
       {id:"entretenimento", nome:"Entretenimento"},
       {id:"educacao", nome:"Educação"},
-      {id:"feira", nome:"Feira"}
+      {id:"feira", nome:"Feira"},
+      {id:"pizzas", nome:"Pizzas e lanches"},
+      {id:"presentes", nome:"Presentes"}
     ]),
     meses: {
       "2023-07": [
@@ -54,6 +56,20 @@ function seed() {
         item("Cartão Nubank", 100, "pendente", "basico", "", "Débito", true, "Valor fictício"),
         item("Cartão C6", 100, "pendente", "basico", "", "Débito", true, "Valor fictício"),
         item("Feira do mês", 200, "pendente", "feira", "", "Débito", true)
+      ],
+      "2023-10": [
+        item("Luz", 49, "pago", "fixo", "", "Débito", true),
+        item("Condomínio", 250, "pago", "fixo", "", "Débito", true),
+        item("Internet", 109, "pago", "fixo", "", "Débito", true),
+        item("Faculdade", 80, "pago", "educacao", "", "Débito", true),
+        item("Celular (recarga)", 65, "pago", "fixo", "", "Débito", true),
+        item("Celular (recarga extra)", 30, "pago", "fixo", "", "Débito", false),
+        item("Assinaturas (Disney+ e Netflix)", 150, "pago", "entretenimento", "", "Débito", true),
+        item("Cartão Next", 100, "pago", "basico", "", "Débito", true, "Valor fictício"),
+        item("Cartão C6", 100, "pago", "basico", "", "Débito", true, "Valor fictício"),
+        item("Feira do mês", 200, "pendente", "feira", "", "Débito", true),
+        item("Pizzas e lanches", 200, "pendente", "pizzas", "", "Débito", false),
+        item("Presentes", 150, "pendente", "presentes", "", "Débito", false)
       ]
     }
   };
