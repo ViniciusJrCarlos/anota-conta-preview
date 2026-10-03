@@ -1,0 +1,84 @@
+const KEY = "anota-conta-v02";
+const KEY_V01 = "anota-conta-v01";
+const MESES = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+const FORMAS = ["Pix","Débito","Crédito","Dinheiro","Outro"];
+const CATS_PADRAO = [
+  {id:"fixo", nome:"Fixos"},
+  {id:"basico", nome:"Básicos"},
+  {id:"entretenimento", nome:"Entretenimento"},
+  {id:"feira", nome:"Feira"},
+  {id:"mercado", nome:"Mercado"}
+];
+
+function mesHoje() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+}
+
+function item(nome, valor, status, tipo, data, forma, repete, obs="") {
+  return { id: crypto.randomUUID(), nome, valor, status, tipo, data: data || "", forma, obs, repete };
+}
+
+function seed() {
+  return {
+    versao: 2,
+    tema: "branca",
+    mesAtual: "2026-01",
+    categorias: CATS_PADRAO.slice(),
+    meses: {
+      "2026-01": [
+        item("Luz", 100, "pago", "basico", "2026-01-20", "Débito", true),
+        item("Internet", 109, "pago", "fixo", "2026-01-20", "Pix", true),
+        item("Compras", 600, "pago", "basico", "2026-01-10", "Crédito", true, "Parcelado"),
+        item("Pizza", 60, "pago", "entretenimento", "2026-01-15", "Crédito", false),
+        item("Cinema", 80, "pago", "entretenimento", "2026-01-18", "Pix", false)
+      ]
+    }
+  };
+}
+
+function carregar() {
+  const raw2 = localStorage.getItem(KEY);
+  if (raw2) {
+    const e = JSON.parse(raw2);
+    if (!e.categorias) e.categorias = CATS_PADRAO.slice();
+    return e;
+  }
+  const raw1 = localStorage.getItem(KEY_V01);
+  if (raw1) {
+    const e = JSON.parse(raw1);
+    e.versao = 2;
+    e.categorias = CATS_PADRAO.slice();
+    return e;
+  }
+  return seed();
+}
+
+function persistir(estado, atual) {
+  estado.mesAtual = atual;
+  localStorage.setItem(KEY, JSON.stringify(estado));
+}
+
+function money(n) {
+  return Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function parseMoney(s) {
+  if (!s) return 0;
+  return Number(String(s).replace(/\./g,"").replace(",",".")) || 0;
+}
+
+function tituloMes(k) {
+  const [y,m] = k.split("-");
+  return MESES[Number(m)-1] + " " + y;
+}
+
+function fmtData(iso) {
+  if (!iso) return "";
+  const [y,m,d] = iso.split("-");
+  return d + "/" + m;
+}
+
+function esc(s) {
+  return String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+}

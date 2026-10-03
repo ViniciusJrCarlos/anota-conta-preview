@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-tema="branca">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#111111" />
+  <meta name="description" content="Anota Conta: caderno digital para lembrar o que vence e agradecer por poder pagar." />
+  <title>Anota Conta</title>
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" defer></script>
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <rect x="6" y="4" width="20" height="24" rx="3" stroke="#F5C518" stroke-width="2"/>
+          <path d="M8 4h8v4H8z" fill="#F5C518"/>
+          <path d="M11 18l3 3 7-8" stroke="#F5C518" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Anota Conta
+      </div>
+      <span style="font-size:.78rem;opacity:.8">v0.2 teste</span>
+    </header>
+    <main id="main"></main>
+  </div>
+  <button class="fab" id="fab" onclick="abrirForm()">+</button>
+  <nav class="tab">
+    <button class="on" id="tMes" onclick="ir('mes')">Este mês</button>
+    <button id="tMeses" onclick="ir('meses')">Meses</button>
+    <button id="tResumo" onclick="ir('resumo')">Resumo</button>
+    <button id="tMais" onclick="ir('mais')">Mais</button>
+  </nav>
+
+  <dialog id="dlg">
+    <form class="sheet" onsubmit="salvarItem(event)">
+      <h2 id="formTitulo">Nova conta</h2>
+      <label>Nome</label>
+      <input id="fNome" required placeholder="Luz, Cinema, Feira…" />
+      <div class="split">
+        <div><label>Valor (R$)</label><input id="fValor" inputmode="decimal" placeholder="40,00" /></div>
+        <div>
+          <label>Status</label>
+          <select id="fStatus">
+            <option value="pendente">Pendente</option>
+            <option value="pago">Pago (OK)</option>
+            <option value="nok">Não pago (NOK)</option>
+          </select>
+        </div>
+      </div>
+      <label>Data do pagamento</label>
+      <input id="fData" type="date" />
+      <label>Como pagou</label>
+      <div class="tipos" id="formasBox"></div>
+      <label>Categoria</label>
+      <div class="tipos" id="catsBox"></div>
+      <button type="button" class="btn ghost" style="margin-top:8px" onclick="novaCategoria()">+ Nova categoria</button>
+      <label>Observação</label>
+      <input id="fObs" />
+      <label><input type="checkbox" id="fRepete" style="width:auto" /> Repete todo mês</label>
+      <div class="actions">
+        <button type="button" class="btn ghost" onclick="dlg.close()">Cancelar</button>
+        <button type="button" class="btn danger" id="btnApagar" hidden onclick="apagarItem()">Excluir</button>
+        <button class="btn main">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+  <input type="file" id="fileIn" accept="application/json,.json" hidden />
+
+  <script src="js/store.js"></script>
+  <script src="js/themes.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
