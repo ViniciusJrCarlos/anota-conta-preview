@@ -1,4 +1,4 @@
-const KEY = "anota-conta-v02";
+const KEY = "anota-conta-v02-preview-2023";
 const KEY_V01 = "anota-conta-v01";
 const MESES = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 const FORMAS = ["Pix","Débito","Crédito","Dinheiro","Outro"];
@@ -23,15 +23,15 @@ function seed() {
   return {
     versao: 2,
     tema: "branca",
-    mesAtual: "2026-01",
+    mesAtual: "2023-07",
     categorias: CATS_PADRAO.slice(),
     meses: {
-      "2026-01": [
-        item("Luz", 100, "pago", "basico", "2026-01-20", "Débito", true),
-        item("Internet", 109, "pago", "fixo", "2026-01-20", "Pix", true),
-        item("Compras", 600, "pago", "basico", "2026-01-10", "Crédito", true, "Parcelado"),
-        item("Pizza", 60, "pago", "entretenimento", "2026-01-15", "Crédito", false),
-        item("Cinema", 80, "pago", "entretenimento", "2026-01-18", "Pix", false)
+      "2023-07": [
+        item("Luz", 100, "pago", "basico", "", "Débito", true),
+        item("Condomínio", 250, "pago", "fixo", "", "Débito", true),
+        item("Internet", 109, "pago", "fixo", "", "Débito", true),
+        item("Faculdade", 80, "pago", "fixo", "", "Débito", true),
+        item("Celular (recarga)", 65, "pago", "basico", "", "Débito", true)
       ]
     }
   };
