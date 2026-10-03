@@ -169,7 +169,7 @@ function viewMais() {
     <button class="card" style="width:100%;text-align:left" onclick="document.getElementById('fileIn').click()"><strong>Importar backup</strong><div class="meta">Carrega um arquivo .json exportado pelo Anota Conta</div></button>
     <button class="card" style="width:100%;text-align:left" onclick="copiarProx()">Copiar mês para o próximo</button>
     <div class="warn">O Excel abre uma aba por mês do ano. O backup é o arquivo para guardar no Drive, no e-mail ou no WhatsApp e passar os dados para outro aparelho. Tudo continua neste aparelho.</div>
-    <p class="hint" style="margin-top:14px">v0.2 candidata · a homologada continua sendo a v0.1 até você aprovar.</p>`;
+    <p class="hint" style="margin-top:18px;text-align:center;line-height:1.5"><strong>Anota Conta</strong><br>Versão 0.2<br>© ${new Date().getFullYear()} webdev. Todos os direitos reservados.</p>`;
 }
 function pintarchips(boxId, opcoes, campo) {
   const box = document.getElementById(boxId);
