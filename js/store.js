@@ -1,4 +1,6 @@
-const KEY = "anota-conta-v02-preview-2023f";
+const KEY = "anota-conta-v02-preview-2023g";
+// true: começa com os meses de exemplo (preview). false: começa vazio, no mês atual, só com Fixos e Básicos.
+const USAR_EXEMPLO = true;
 const KEY_V01 = "anota-conta-v01";
 const MESES = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 const FORMAS = ["Pix","Débito","Crédito","Dinheiro","Outro"];
@@ -16,7 +18,18 @@ function item(nome, valor, status, tipo, data, forma, repete, obs="") {
   return { id: crypto.randomUUID(), nome, valor, status, tipo, data: data || "", forma, obs, repete };
 }
 
+function seedVazio() {
+  return {
+    versao: 2,
+    tema: "branca",
+    mesAtual: mesHoje(),
+    categorias: CATS_PADRAO.map(c => ({...c})),
+    meses: {}
+  };
+}
+
 function seed() {
+  if (!USAR_EXEMPLO) return seedVazio();
   return {
     versao: 2,
     tema: "branca",

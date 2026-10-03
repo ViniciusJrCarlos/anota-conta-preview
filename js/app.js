@@ -6,6 +6,7 @@ let filtro = "todas";
 let editando = null;
 let tipoSel = "basico";
 let formaSel = "Pix";
+let selecao = null; // Set com os meses marcados no modo de seleção (aba Meses)
 
 function lista() {
   if (!estado.meses[atual]) estado.meses[atual] = [];
@@ -30,6 +31,7 @@ function catsDoMes(items) {
 function persist() { persistir(estado, atual); }
 
 function ir(t) {
+  if (t !== "meses" && selecao) { selecao = null; atualizarSelbar(); }
   tela = t;
   ["tMes","tMeses","tResumo","tMais"].forEach(id => document.getElementById(id).classList.remove("on"));
   const map = {mes:"tMes", meses:"tMeses", resumo:"tResumo", mais:"tMais"};
@@ -77,7 +79,7 @@ function viewMes() {
       </div>
       <div class="amt">${it.valor ? money(it.valor) : "—"}</div>
     </article>`;
-  }).join("") : `<div class="empty">Nada neste filtro.<br>Toque em + para anotar.</div>`;
+  }).join("") : `<div class="empty">${items.length ? "Nada neste filtro." : "Nenhuma conta neste mês."}<br>Toque em + para anotar.</div>`;
   return `<p class="frase">Lembre o que vence. Agradeça por poder pagar.</p>
     <div class="month">
       <button class="nav-btn" onclick="shift(-1)">‹</button>
@@ -102,12 +104,16 @@ function viewMeses() {
     const pagas = arr.filter(i => i.status==="pago").length;
     const tot = arr.reduce((a,b)=>a+Number(b.valor||0),0);
     const pct = arr.length ? Math.round(pagas/arr.length*100) : 0;
-    return `<button class="card" style="width:100%;text-align:left;cursor:pointer" onclick="atual='${k}';ir('mes')">
-      <div class="row"><strong>${tituloMes(k)}</strong><b>${money(tot)}</b></div>
-      <div class="meta">${pagas} de ${arr.length} pagas</div>
-      <div class="bar ${pct===100?"done":""}"><i style="width:${pct}%"></i></div>
+    const sel = selecao && selecao.has(k);
+    return `<button type="button" class="card mes-card ${sel?"sel":""}" data-mes="${esc(k)}" aria-pressed="${sel?"true":"false"}">
+      ${selecao ? `<span class="check" aria-hidden="true"></span>` : ""}
+      <div class="mes-info">
+        <div class="row"><strong>${tituloMes(k)}</strong><b>${money(tot)}</b></div>
+        <div class="meta">${pagas} de ${arr.length} pagas</div>
+        <div class="bar ${pct===100?"done":""}"><i style="width:${pct}%"></i></div>
+      </div>
     </button>`;
-  }).join("") + `<p class="hint">Salvo só neste aparelho.</p>`;
+  }).join("") + `<p class="hint">${selecao ? "Toque nos meses para marcar ou desmarcar." : "Segure um mês para selecionar e excluir. Salvo só neste aparelho."}</p>`;
 }
 function viewResumo() {
   const items = lista();
@@ -157,10 +163,10 @@ function viewMais() {
         onclick="estado.tema='${k}';persist();render()"><strong>${l}</strong>${t===k?" · em uso":""}</button>`).join("")}
     <h2 style="margin-top:22px">Seus dados</h2>
     <button class="card" style="width:100%;text-align:left" onclick="exportarExcel()">Baixar Excel do ano ${ano}</button>
-    <button class="card" style="width:100%;text-align:left" onclick="exportarCopia()">Baixar cópia de segurança</button>
-    <button class="card" style="width:100%;text-align:left" onclick="document.getElementById('fileIn').click()">Restaurar cópia</button>
+    <button class="card" style="width:100%;text-align:left" onclick="exportarBackup()"><strong>Exportar backup</strong><div class="meta">Baixa um arquivo .json com todos os meses, contas e categorias</div></button>
+    <button class="card" style="width:100%;text-align:left" onclick="document.getElementById('fileIn').click()"><strong>Importar backup</strong><div class="meta">Carrega um arquivo .json exportado pelo Anota Conta</div></button>
     <button class="card" style="width:100%;text-align:left" onclick="copiarProx()">Copiar mês para o próximo</button>
-    <div class="warn">O Excel abre uma aba por mês do ano. A cópia de segurança é o arquivo para guardar no Drive. Tudo continua neste aparelho.</div>
+    <div class="warn">O Excel abre uma aba por mês do ano. O backup é o arquivo para guardar no Drive, no e-mail ou no WhatsApp e passar os dados para outro aparelho. Tudo continua neste aparelho.</div>
     <p class="hint" style="margin-top:14px">v0.2 candidata · a homologada continua sendo a v0.1 até você aprovar.</p>`;
 }
 function pintarchips(boxId, opcoes, campo) {
@@ -240,10 +246,20 @@ function copiarProx() {
   atual = dest; persist(); ir("mes");
   alert("Copiado para " + tituloMes(dest));
 }
-function exportarCopia() {
+function hojeISO() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function exportarBackup() {
+  persist();
+  const dados = {app: "anota-conta", formato: 1, exportadoEm: new Date().toISOString(), ...estado};
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(estado,null,2)], {type:"application/json"}));
-  a.download = "anota-conta-copia.json"; a.click();
+  const url = URL.createObjectURL(new Blob([JSON.stringify(dados, null, 2)], {type:"application/json"}));
+  a.href = url;
+  a.download = "anota-conta-backup-" + hojeISO() + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  aviso("Backup exportado.");
 }
 function exportarExcel() {
   if (typeof XLSX === "undefined") {
@@ -273,12 +289,195 @@ function exportarExcel() {
   XLSX.writeFile(wb, "anota-conta-" + ano + ".xlsx");
 }
 
+/* ---------- Aviso rápido e diálogo de confirmação ---------- */
+let avisoTimer = null;
+function aviso(msg, tipo = "ok") {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast " + tipo;
+  t.hidden = false;
+  clearTimeout(avisoTimer);
+  avisoTimer = setTimeout(() => { t.hidden = true; }, 3200);
+}
+// botoes: [{rotulo, classe, valor}] · devolve o valor do botão tocado, ou null se fechar/cancelar
+function perguntar(titulo, texto, botoes, coluna = false) {
+  const d = document.getElementById("dlgConf");
+  document.getElementById("confTitulo").textContent = titulo;
+  document.getElementById("confTexto").textContent = texto;
+  const box = document.getElementById("confAcoes");
+  box.className = "actions" + (coluna ? " col" : "");
+  box.innerHTML = "";
+  return new Promise(resolve => {
+    let valor = null;
+    botoes.forEach(b => {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "btn " + (b.classe || "ghost");
+      el.textContent = b.rotulo;
+      el.addEventListener("click", () => { valor = b.valor; d.close(); });
+      box.appendChild(el);
+    });
+    d.addEventListener("close", () => resolve(valor), { once: true });
+    d.showModal();
+  });
+}
+
+/* ---------- Meses: segurar para selecionar e excluir ---------- */
+function atualizarSelbar() {
+  const bar = document.getElementById("selbar");
+  const n = selecao ? selecao.size : 0;
+  bar.hidden = !selecao;
+  document.body.classList.toggle("selecionando", !!selecao);
+  document.getElementById("selN").textContent = n === 1 ? "1 selecionado" : n + " selecionados";
+  document.getElementById("selExcluir").disabled = n === 0;
+}
+function entrarSelecao(k) {
+  selecao = new Set([k]);
+  if (navigator.vibrate) { try { navigator.vibrate(30); } catch (_) {} }
+  atualizarSelbar(); render();
+}
+function sairSelecao() {
+  selecao = null;
+  atualizarSelbar();
+  if (tela === "meses") render();
+}
+function alternarSelecao(k) {
+  if (selecao.has(k)) selecao.delete(k); else selecao.add(k);
+  atualizarSelbar(); render();
+}
+function chaveNum(k) { const [y,m] = k.split("-").map(Number); return y * 12 + (m - 1); }
+async function excluirSelecionados() {
+  if (!selecao || !selecao.size) return;
+  const n = selecao.size;
+  const titulo = n === 1 ? `Excluir ${tituloMes([...selecao][0])}?` : `Excluir ${n} meses?`;
+  const ok = await perguntar(titulo, "Todas as contas desse" + (n === 1 ? " mês" : "s meses") + " serão apagadas. Essa ação não pode ser desfeita.", [
+    {rotulo: "Cancelar", classe: "ghost", valor: null},
+    {rotulo: "Excluir", classe: "danger", valor: "excluir"}
+  ]);
+  if (ok !== "excluir") return;
+  const apagados = [...selecao];
+  apagados.forEach(k => { delete estado.meses[k]; });
+  if (apagados.includes(atual)) {
+    const resto = Object.keys(estado.meses);
+    if (resto.length) {
+      const alvo = chaveNum(atual);
+      resto.sort((a, b) => Math.abs(chaveNum(a) - alvo) - Math.abs(chaveNum(b) - alvo) || chaveNum(b) - chaveNum(a));
+      atual = resto[0];
+    } else {
+      atual = mesHoje();
+    }
+  }
+  selecao = null;
+  persist(); atualizarSelbar(); render();
+  aviso(n === 1 ? "1 mês excluído." : n + " meses excluídos.");
+}
+(function ligarSegurarMeses() {
+  const main = document.getElementById("main");
+  let timer = null, x0 = 0, y0 = 0, alvo = null, ignorarClique = false;
+  const cancelar = () => { clearTimeout(timer); timer = null; alvo = null; };
+  main.addEventListener("pointerdown", e => {
+    ignorarClique = false;
+    const card = e.target.closest("[data-mes]");
+    if (!card || tela !== "meses" || (e.pointerType === "mouse" && e.button !== 0)) return;
+    alvo = card.dataset.mes; x0 = e.clientX; y0 = e.clientY;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = null;
+      const k = alvo; alvo = null;
+      if (!k) return;
+      ignorarClique = true;
+      if (selecao) { if (!selecao.has(k)) alternarSelecao(k); }
+      else entrarSelecao(k);
+    }, 500);
+  });
+  main.addEventListener("pointermove", e => {
+    if (timer && (Math.abs(e.clientX - x0) > 10 || Math.abs(e.clientY - y0) > 10)) cancelar();
+  });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(ev => main.addEventListener(ev, () => { if (timer) cancelar(); }));
+  window.addEventListener("scroll", () => { if (timer) cancelar(); }, { passive: true });
+  main.addEventListener("contextmenu", e => { if (e.target.closest("[data-mes]")) e.preventDefault(); });
+  main.addEventListener("click", e => {
+    const card = e.target.closest("[data-mes]");
+    if (!card) return;
+    if (ignorarClique) { ignorarClique = false; return; }
+    const k = card.dataset.mes;
+    if (selecao) alternarSelecao(k);
+    else { atual = k; ir("mes"); }
+  });
+})();
+
+/* ---------- Backup: importar ---------- */
+function validarBackup(obj) {
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return false;
+  if (!obj.meses || typeof obj.meses !== "object" || Array.isArray(obj.meses)) return false;
+  for (const [k, arr] of Object.entries(obj.meses)) {
+    if (!/^\d{4}-\d{2}$/.test(k) || !Array.isArray(arr)) return false;
+    for (const it of arr) {
+      if (!it || typeof it !== "object" || typeof it.nome !== "string") return false;
+      if (it.valor !== undefined && it.valor !== null && it.valor !== "" && isNaN(Number(it.valor))) return false;
+      if (!("valor" in it)) return false;
+    }
+  }
+  if (obj.categorias !== undefined && !Array.isArray(obj.categorias)) return false;
+  return true;
+}
+function limparItem(it) {
+  return { ...it, id: it.id || crypto.randomUUID(), valor: Number(it.valor || 0) };
+}
+function limparCats(lista) {
+  return (lista || []).filter(c => c && c.id && c.nome).map(c => ({id: String(c.id), nome: String(c.nome)}));
+}
+function substituirTudo(obj) {
+  const meses = {};
+  Object.entries(obj.meses).forEach(([k, arr]) => { meses[k] = arr.map(limparItem); });
+  const categorias = limparCats(obj.categorias);
+  estado = {
+    versao: 2,
+    tema: ["branca","preta","luz"].includes(obj.tema) ? obj.tema : estado.tema,
+    mesAtual: obj.mesAtual,
+    categorias: categorias.length ? categorias : CATS_PADRAO.map(c => ({...c})),
+    meses
+  };
+  const chaves = Object.keys(meses).sort();
+  atual = meses[obj.mesAtual] ? obj.mesAtual : (chaves[chaves.length - 1] || mesHoje());
+}
+function juntarDados(obj) {
+  const cs = cats();
+  limparCats(obj.categorias).forEach(c => { if (!cs.some(x => x.id === c.id)) cs.push(c); });
+  Object.entries(obj.meses).forEach(([k, arr]) => {
+    if (!estado.meses[k]) estado.meses[k] = [];
+    const ids = new Set(estado.meses[k].map(i => i.id));
+    arr.forEach(it => {
+      if (it.id && ids.has(it.id)) return;
+      const novo = limparItem(it);
+      ids.add(novo.id);
+      estado.meses[k].push(novo);
+    });
+  });
+}
 document.getElementById("fileIn").addEventListener("change", async e => {
-  const f = e.target.files[0]; if (!f) return;
-  estado = JSON.parse(await f.text());
-  if (!estado.categorias) estado.categorias = CATS_PADRAO.slice();
-  atual = estado.mesAtual || Object.keys(estado.meses || {})[0] || mesHoje();
-  persist(); render(); e.target.value = "";
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  let obj = null;
+  try { obj = JSON.parse(await f.text()); } catch (_) { obj = null; }
+  if (!validarBackup(obj)) { aviso("Arquivo inválido. Escolha um backup do Anota Conta.", "nok"); return; }
+  const qtdMeses = Object.keys(obj.meses).length;
+  const qtdContas = Object.values(obj.meses).reduce((a, arr) => a + arr.length, 0);
+  const escolha = await perguntar("Importar backup",
+    `O arquivo tem ${qtdMeses} ${qtdMeses === 1 ? "mês" : "meses"} e ${qtdContas} ${qtdContas === 1 ? "conta" : "contas"}. Como você quer importar?`, [
+      {rotulo: "Substituir tudo", classe: "main", valor: "substituir"},
+      {rotulo: "Juntar com os dados atuais", classe: "ghost", valor: "juntar"},
+      {rotulo: "Cancelar", classe: "ghost", valor: null}
+    ], true);
+  if (!escolha) return;
+  try {
+    if (escolha === "substituir") substituirTudo(obj); else juntarDados(obj);
+    persist(); render();
+    aviso(escolha === "substituir" ? "Backup importado. Dados substituídos." : "Backup importado. Dados juntados.");
+  } catch (err) {
+    aviso("Não foi possível importar esse arquivo.", "nok");
+  }
 });
 
 if ("serviceWorker" in navigator && location.protocol !== "file:") {

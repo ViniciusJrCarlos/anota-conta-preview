@@ -67,6 +67,19 @@
       </div>
     </form>
   </dialog>
+  <dialog id="dlgConf">
+    <div class="sheet">
+      <h2 id="confTitulo"></h2>
+      <p class="hint" id="confTexto" style="margin:0"></p>
+      <div class="actions" id="confAcoes"></div>
+    </div>
+  </dialog>
+  <div class="selbar" id="selbar" hidden>
+    <span class="selbar-n" id="selN">0 selecionados</span>
+    <button type="button" class="btn ghost" onclick="sairSelecao()">Cancelar</button>
+    <button type="button" class="btn danger" id="selExcluir" onclick="excluirSelecionados()">Excluir</button>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <input type="file" id="fileIn" accept="application/json,.json" hidden />
 
   <script src="js/store.js"></script>
