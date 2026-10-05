@@ -1,10 +1,11 @@
-const CACHE = "anota-conta-v02-11";
+const CACHE = "anota-conta-v03-1";
 const ASSETS = [
   "./",
   "./index.html",
   "./css/tokens.css",
   "./js/store.js",
   "./js/themes.js",
+  "./js/auth.js",
   "./js/app.js",
   "./manifest.webmanifest",
   "./icons/icon.svg"

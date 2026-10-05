@@ -169,7 +169,10 @@ function viewMais() {
     <button class="card" style="width:100%;text-align:left" onclick="document.getElementById('fileIn').click()"><strong>Importar backup</strong><div class="meta">Carrega um arquivo .json exportado pelo Anota Conta</div></button>
     <button class="card" style="width:100%;text-align:left" onclick="copiarProx()">Copiar mês para o próximo</button>
     <div class="warn">O Excel abre uma aba por mês do ano. O backup é o arquivo para guardar no Drive, no e-mail ou no WhatsApp e passar os dados para outro aparelho. Tudo continua neste aparelho.</div>
-    <p class="hint" style="margin-top:18px;text-align:center;line-height:1.5"><strong>Anota Conta</strong><br>Versão 0.2<br>© ${new Date().getFullYear()} webdev. Todos os direitos reservados.</p>`;
+    <h2 style="margin-top:22px">Acesso</h2>
+    <button class="card" style="width:100%;text-align:left" onclick="abrirTrocaSenha()"><strong>Trocar senha</strong><div class="meta">Altera a senha salva neste aparelho</div></button>
+    <button class="card" style="width:100%;text-align:left" onclick="sairApp()"><strong>Sair</strong><div class="meta">Bloqueia o app até digitar a senha de novo</div></button>
+    <p class="hint" style="margin-top:18px;text-align:center;line-height:1.5"><strong>Anota Conta</strong><br>Versão 0.3<br>© ${new Date().getFullYear()} webdev. Todos os direitos reservados.</p>`;
 }
 function pintarchips(boxId, opcoes, campo) {
   const box = document.getElementById(boxId);
@@ -589,5 +592,139 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }
 
+/* ---------- Capa de login / sessão ---------- */
+const dlgSenha = document.getElementById("dlgSenha");
+
+function atualizarLoginRodape() {
+  const el = document.getElementById("loginRodape");
+  if (el) el.textContent = "Anota Conta v0.3 · © " + new Date().getFullYear() + " webdev";
+}
+
+function modoLoginCriar(criar) {
+  document.getElementById("loginCriar").hidden = !criar;
+  document.getElementById("loginEntrar").hidden = criar;
+  document.getElementById("loginSub").textContent = criar
+    ? "Crie uma senha para proteger o Anota Conta neste aparelho."
+    : "Digite sua senha para abrir";
+  document.getElementById("loginBtn").textContent = criar ? "Criar e entrar" : "Entrar";
+  document.getElementById("loginErro").textContent = "";
+  document.getElementById("loginSenha").value = "";
+  document.getElementById("loginSenhaNova").value = "";
+  document.getElementById("loginSenhaConf").value = "";
+}
+
+function bloquearApp() {
+  document.body.classList.add("travado");
+  atualizarLoginRodape();
+  modoLoginCriar(!temSenhaLocal());
+  const foco = temSenhaLocal()
+    ? document.getElementById("loginSenha")
+    : document.getElementById("loginSenhaNova");
+  setTimeout(() => { try { foco.focus(); } catch (_) {} }, 50);
+}
+
+function desbloquearApp() {
+  document.body.classList.remove("travado");
+  ir("mes");
+}
+
+async function sairApp() {
+  const ok = await perguntar("Sair?", "Você precisará digitar a senha de novo para abrir o Anota Conta.", [
+    {rotulo: "Cancelar", classe: "ghost", valor: null},
+    {rotulo: "Sair", classe: "danger", valor: "sair"}
+  ]);
+  if (ok !== "sair") return;
+  fecharSessao();
+  if (selecao) { selecao = null; atualizarSelbar(); }
+  ["dlg","dlgConf","dlgCat","dlgSenha"].forEach(id => {
+    const d = document.getElementById(id);
+    if (d && d.open) d.close();
+  });
+  bloquearApp();
+}
+
+function abrirTrocaSenha() {
+  document.getElementById("fSenhaAtual").value = "";
+  document.getElementById("fSenhaNova").value = "";
+  document.getElementById("fSenhaNova2").value = "";
+  const er = document.getElementById("senhaErro");
+  er.textContent = ""; er.hidden = true;
+  dlgSenha.showModal();
+  setTimeout(() => document.getElementById("fSenhaAtual").focus(), 40);
+}
+
+async function salvarTrocaSenha(e) {
+  e.preventDefault();
+  const er = document.getElementById("senhaErro");
+  const atual = document.getElementById("fSenhaAtual").value;
+  const nova = document.getElementById("fSenhaNova").value;
+  const conf = document.getElementById("fSenhaNova2").value;
+  er.hidden = true;
+  if (nova.length < AUTH_MIN) {
+    er.textContent = "A nova senha precisa ter pelo menos " + AUTH_MIN + " caracteres.";
+    er.hidden = false; return;
+  }
+  if (nova !== conf) {
+    er.textContent = "A confirmação não é igual à nova senha.";
+    er.hidden = false; return;
+  }
+  try {
+    const ok = await trocarSenhaLocal(atual, nova);
+    if (!ok) {
+      er.textContent = "Senha atual incorreta.";
+      er.hidden = false;
+      document.getElementById("fSenhaAtual").select();
+      return;
+    }
+    abrirSessao();
+    dlgSenha.close();
+    aviso("Senha alterada.");
+  } catch (err) {
+    er.textContent = err && err.message === "curta"
+      ? "A nova senha precisa ter pelo menos " + AUTH_MIN + " caracteres."
+      : "Não foi possível trocar a senha neste navegador.";
+    er.hidden = false;
+  }
+}
+
+document.getElementById("loginForm").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const erro = document.getElementById("loginErro");
+  const btn = document.getElementById("loginBtn");
+  erro.textContent = "";
+  btn.disabled = true;
+  const criar = !temSenhaLocal();
+  try {
+    if (criar) {
+      const nova = document.getElementById("loginSenhaNova").value;
+      const conf = document.getElementById("loginSenhaConf").value;
+      if (nova.length < AUTH_MIN) {
+        erro.textContent = "A senha precisa ter pelo menos " + AUTH_MIN + " caracteres.";
+      } else if (nova !== conf) {
+        erro.textContent = "A confirmação não é igual à senha.";
+      } else {
+        await criarSenhaLocal(nova);
+        abrirSessao();
+        desbloquearApp();
+      }
+    } else {
+      const senha = document.getElementById("loginSenha").value;
+      if (await verifyLocal(senha)) {
+        abrirSessao();
+        document.getElementById("loginSenha").value = "";
+        desbloquearApp();
+      } else {
+        erro.textContent = "Senha incorreta. Tente novamente.";
+        document.getElementById("loginSenha").select();
+      }
+    }
+  } catch (e) {
+    erro.textContent = "Não foi possível verificar a senha neste navegador (abra pelo link https ou http local).";
+  }
+  btn.disabled = false;
+});
+
 aplicarTema(estado);
-ir("mes");
+atualizarLoginRodape();
+if (sessaoAberta()) desbloquearApp();
+else bloquearApp();

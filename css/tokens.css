@@ -143,3 +143,28 @@ body.selecionando { padding-bottom: 150px; }
   .stats { grid-auto-flow: row; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); overflow: visible; }
   .chips { flex-wrap: wrap; overflow: visible; }
 }
+
+/* ---------- Capa de login ---------- */
+body.travado { padding-bottom: 0; overflow: hidden; }
+body.travado .app,
+body.travado .fab,
+body.travado nav.tab,
+body.travado .selbar,
+body.travado .toast { display: none !important; }
+.login {
+  display: none; position: fixed; inset: 0; z-index: 50;
+  align-items: center; justify-content: center;
+  padding: 24px 16px; background: var(--bg); color: var(--ink);
+}
+body.travado .login { display: flex; }
+.login-box { width: 100%; max-width: 380px; }
+.login-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.login-brand .logo { width: 36px; height: 36px; }
+.login-brand h1 { margin: 0; font-size: 1.35rem; font-weight: 750; }
+.login-sub { color: var(--muted); font-size: .9rem; margin: 0 0 16px; line-height: 1.4; }
+.login-box label { display: block; font-size: .78rem; color: var(--muted); margin: 10px 0 4px; }
+.login-box input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--card); color: var(--ink); font: inherit; }
+.login-box .btn.main { width: 100%; margin-top: 16px; flex: none; }
+.login-erro { color: var(--nok); font-size: .84rem; min-height: 1.2em; margin: 10px 0 0; font-weight: 650; }
+.login-rodape { color: var(--muted); font-size: .78rem; margin: 18px 0 0; text-align: center; line-height: 1.4; }
