@@ -25,7 +25,10 @@
       <p class="login-sub" id="loginSub">Digite sua senha para abrir</p>
       <div id="loginEntrar">
         <label for="loginSenha">Senha</label>
-        <input id="loginSenha" type="password" placeholder="Senha de acesso" autocomplete="current-password" />
+        <div class="senha-campo">
+          <input id="loginSenha" type="password" placeholder="Senha de acesso" autocomplete="current-password" />
+          <button type="button" class="olho" aria-label="Mostrar senha" data-alvo="loginSenha" onclick="alternarOlho(this)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
       </div>
       <button type="submit" id="loginBtn" class="btn main">Entrar</button>
       <p id="loginErro" class="login-erro" role="alert"></p>
@@ -114,11 +117,21 @@
     <form class="sheet" onsubmit="salvarTrocaSenha(event)" novalidate>
       <h2>Trocar senha</h2>
       <label for="fSenhaAtual">Senha atual</label>
-      <input id="fSenhaAtual" type="password" autocomplete="current-password" required />
+      <div class="senha-campo">
+        <input id="fSenhaAtual" type="password" autocomplete="current-password" required />
+        <button type="button" class="olho" aria-label="Mostrar senha" data-alvo="fSenhaAtual" onclick="alternarOlho(this)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
       <label for="fSenhaNova">Nova senha</label>
-      <input id="fSenhaNova" type="password" minlength="4" placeholder="Mínimo 4 caracteres" autocomplete="new-password" required />
+      <div class="senha-campo">
+        <input id="fSenhaNova" type="password" minlength="8" placeholder="Nova senha" autocomplete="new-password" required />
+        <button type="button" class="olho" aria-label="Mostrar senha" data-alvo="fSenhaNova" onclick="alternarOlho(this)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
       <label for="fSenhaNova2">Confirmar nova senha</label>
-      <input id="fSenhaNova2" type="password" minlength="4" placeholder="Repita a nova senha" autocomplete="new-password" required />
+      <div class="senha-campo">
+        <input id="fSenhaNova2" type="password" minlength="8" placeholder="Repita a nova senha" autocomplete="new-password" required />
+        <button type="button" class="olho" aria-label="Mostrar senha" data-alvo="fSenhaNova2" onclick="alternarOlho(this)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
+      <p class="hint" id="senhaRegras">A nova senha precisa ter: no mínimo 8 caracteres, 1 letra maiúscula, 1 número e 1 caractere especial.</p>
       <p class="hint cat-aviso nok-txt" id="senhaErro" hidden></p>
       <div class="actions">
         <button type="button" class="btn ghost" onclick="dlgSenha.close()">Cancelar</button>

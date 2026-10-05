@@ -2,7 +2,18 @@
 const AUTH_KEY = "anota-conta-auth-v1";
 const SESSAO_KEY = "anota-conta-sessao";
 const AUTH_ITER = 310000;
-const AUTH_MIN = 4;
+const AUTH_MIN = 8;
+
+const AUTH_REGRAS_MSG = "A nova senha precisa ter: no mínimo 8 caracteres, 1 letra maiúscula, 1 número e 1 caractere especial.";
+
+/** Regras só para senha NOVA (criar / trocar). Senha atual não passa por isso. */
+function senhaForte(senha) {
+  const s = String(senha || "");
+  return s.length >= AUTH_MIN
+    && /[A-Z]/.test(s)
+    && /[0-9]/.test(s)
+    && /[^A-Za-z0-9]/.test(s);
+}
 
 /* Senha padrão do preview: hash PBKDF2-SHA256 pré-calculado (texto não fica no código). */
 const AUTH_PADRAO = {
@@ -83,7 +94,7 @@ async function verifyRemote(_senha) {
 }
 
 async function criarSenhaLocal(senha) {
-  if (String(senha || "").length < AUTH_MIN) throw new Error("curta");
+  if (!senhaForte(senha)) throw new Error("fraca");
   const salt = authSaltAleatorio();
   const hash = await authDerivar(senha, salt);
   localStorage.setItem(AUTH_KEY, JSON.stringify({
@@ -98,7 +109,6 @@ async function criarSenhaLocal(senha) {
 
 async function trocarSenhaLocal(atual, nova) {
   if (!(await verifyLocal(atual))) return false;
-  if (String(nova || "").length < AUTH_MIN) throw new Error("curta");
   await criarSenhaLocal(nova);
   return true;
 }

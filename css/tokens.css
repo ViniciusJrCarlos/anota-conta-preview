@@ -144,6 +144,20 @@ body.selecionando { padding-bottom: 150px; }
   .chips { flex-wrap: wrap; overflow: visible; }
 }
 
+
+/* Campo de senha com olho */
+.senha-campo { position: relative; display: block; }
+.senha-campo input { width: 100%; padding-right: 48px; }
+.senha-campo .olho {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 36px; height: 36px; padding: 0; border: 0; border-radius: 10px;
+  background: transparent; color: var(--muted); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.senha-campo .olho:hover { color: var(--ink); background: color-mix(in srgb, var(--line) 55%, transparent); }
+.senha-campo .olho:focus-visible { outline: 2px solid var(--marca); outline-offset: 1px; }
+#senhaRegras { margin: 10px 0 0; }
+
 /* ---------- Capa de login ---------- */
 body.travado { padding-bottom: 0; overflow: hidden; }
 body.travado .app,

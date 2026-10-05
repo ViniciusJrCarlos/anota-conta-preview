@@ -593,6 +593,34 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
 }
 
 /* ---------- Capa de login / sessão ---------- */
+
+const OLHO_SVG = {
+  mostrar: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  ocultar: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>'
+};
+
+function alternarOlho(btn) {
+  const id = btn.getAttribute("data-alvo");
+  const inp = document.getElementById(id);
+  if (!inp) return;
+  const mostrar = inp.type === "password";
+  inp.type = mostrar ? "text" : "password";
+  btn.setAttribute("aria-label", mostrar ? "Ocultar senha" : "Mostrar senha");
+  btn.innerHTML = mostrar ? OLHO_SVG.ocultar : OLHO_SVG.mostrar;
+}
+
+function resetarOlhos(ids) {
+  (ids || []).forEach(id => {
+    const inp = document.getElementById(id);
+    if (inp) inp.type = "password";
+    const btn = document.querySelector('.olho[data-alvo="' + id + '"]');
+    if (btn) {
+      btn.setAttribute("aria-label", "Mostrar senha");
+      btn.innerHTML = OLHO_SVG.mostrar;
+    }
+  });
+}
+
 const dlgSenha = document.getElementById("dlgSenha");
 
 function atualizarLoginRodape() {
@@ -606,6 +634,7 @@ function prepararLogin() {
   document.getElementById("loginBtn").textContent = "Entrar";
   document.getElementById("loginErro").textContent = "";
   document.getElementById("loginSenha").value = "";
+  resetarOlhos(["loginSenha"]);
 }
 
 function bloquearApp() {
@@ -641,6 +670,7 @@ function abrirTrocaSenha() {
   document.getElementById("fSenhaNova2").value = "";
   const er = document.getElementById("senhaErro");
   er.textContent = ""; er.hidden = true;
+  resetarOlhos(["fSenhaAtual", "fSenhaNova", "fSenhaNova2"]);
   dlgSenha.showModal();
   setTimeout(() => document.getElementById("fSenhaAtual").focus(), 40);
 }
@@ -652,8 +682,8 @@ async function salvarTrocaSenha(e) {
   const nova = document.getElementById("fSenhaNova").value;
   const conf = document.getElementById("fSenhaNova2").value;
   er.hidden = true;
-  if (nova.length < AUTH_MIN) {
-    er.textContent = "A nova senha precisa ter pelo menos " + AUTH_MIN + " caracteres.";
+  if (!senhaForte(nova)) {
+    er.textContent = AUTH_REGRAS_MSG;
     er.hidden = false; return;
   }
   if (nova !== conf) {
@@ -672,8 +702,8 @@ async function salvarTrocaSenha(e) {
     dlgSenha.close();
     aviso("Senha alterada.");
   } catch (err) {
-    er.textContent = err && err.message === "curta"
-      ? "A nova senha precisa ter pelo menos " + AUTH_MIN + " caracteres."
+    er.textContent = err && err.message === "fraca"
+      ? AUTH_REGRAS_MSG
       : "Não foi possível trocar a senha neste navegador.";
     er.hidden = false;
   }
