@@ -600,27 +600,19 @@ function atualizarLoginRodape() {
   if (el) el.textContent = "Anota Conta v0.3 · © " + new Date().getFullYear() + " webdev";
 }
 
-function modoLoginCriar(criar) {
-  document.getElementById("loginCriar").hidden = !criar;
-  document.getElementById("loginEntrar").hidden = criar;
-  document.getElementById("loginSub").textContent = criar
-    ? "Crie uma senha para proteger o Anota Conta neste aparelho."
-    : "Digite sua senha para abrir";
-  document.getElementById("loginBtn").textContent = criar ? "Criar e entrar" : "Entrar";
+function prepararLogin() {
+  garantirSenhaPadrao();
+  document.getElementById("loginSub").textContent = "Digite sua senha para abrir";
+  document.getElementById("loginBtn").textContent = "Entrar";
   document.getElementById("loginErro").textContent = "";
   document.getElementById("loginSenha").value = "";
-  document.getElementById("loginSenhaNova").value = "";
-  document.getElementById("loginSenhaConf").value = "";
 }
 
 function bloquearApp() {
   document.body.classList.add("travado");
   atualizarLoginRodape();
-  modoLoginCriar(!temSenhaLocal());
-  const foco = temSenhaLocal()
-    ? document.getElementById("loginSenha")
-    : document.getElementById("loginSenhaNova");
-  setTimeout(() => { try { foco.focus(); } catch (_) {} }, 50);
+  prepararLogin();
+  setTimeout(() => { try { document.getElementById("loginSenha").focus(); } catch (_) {} }, 50);
 }
 
 function desbloquearApp() {
@@ -693,30 +685,16 @@ document.getElementById("loginForm").addEventListener("submit", async ev => {
   const btn = document.getElementById("loginBtn");
   erro.textContent = "";
   btn.disabled = true;
-  const criar = !temSenhaLocal();
+  garantirSenhaPadrao();
   try {
-    if (criar) {
-      const nova = document.getElementById("loginSenhaNova").value;
-      const conf = document.getElementById("loginSenhaConf").value;
-      if (nova.length < AUTH_MIN) {
-        erro.textContent = "A senha precisa ter pelo menos " + AUTH_MIN + " caracteres.";
-      } else if (nova !== conf) {
-        erro.textContent = "A confirmação não é igual à senha.";
-      } else {
-        await criarSenhaLocal(nova);
-        abrirSessao();
-        desbloquearApp();
-      }
+    const senha = document.getElementById("loginSenha").value;
+    if (await verifyLocal(senha)) {
+      abrirSessao();
+      document.getElementById("loginSenha").value = "";
+      desbloquearApp();
     } else {
-      const senha = document.getElementById("loginSenha").value;
-      if (await verifyLocal(senha)) {
-        abrirSessao();
-        document.getElementById("loginSenha").value = "";
-        desbloquearApp();
-      } else {
-        erro.textContent = "Senha incorreta. Tente novamente.";
-        document.getElementById("loginSenha").select();
-      }
+      erro.textContent = "Senha incorreta. Tente novamente.";
+      document.getElementById("loginSenha").select();
     }
   } catch (e) {
     erro.textContent = "Não foi possível verificar a senha neste navegador (abra pelo link https ou http local).";

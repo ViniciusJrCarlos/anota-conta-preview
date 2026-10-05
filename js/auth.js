@@ -4,6 +4,16 @@ const SESSAO_KEY = "anota-conta-sessao";
 const AUTH_ITER = 310000;
 const AUTH_MIN = 4;
 
+/* Senha padrão do preview: hash PBKDF2-SHA256 pré-calculado (texto não fica no código). */
+const AUTH_PADRAO = {
+  versao: 1,
+  iter: AUTH_ITER,
+  salt: "7a8dbcd98774558b7d1fd6e491ababe0",
+  hash: "6e13b51b85c31b8f2e3e5253f8fa7a4797146db876d34f55139aefea4d5db871",
+  criadoEm: "2026-10-05T00:00:00.000Z",
+  padrao: true
+};
+
 function authBytesToHex(buf) {
   return Array.from(new Uint8Array(buf)).map(x => x.toString(16).padStart(2, "0")).join("");
 }
@@ -45,11 +55,20 @@ function lerAuth() {
   } catch (_) { return null; }
 }
 
-function temSenhaLocal() { return !!lerAuth(); }
+/** Garante hash no aparelho: se ainda não houver senha salva, grava a padrão do preview. */
+function garantirSenhaPadrao() {
+  if (lerAuth()) return lerAuth();
+  localStorage.setItem(AUTH_KEY, JSON.stringify({ ...AUTH_PADRAO }));
+  return lerAuth();
+}
+
+function temSenhaLocal() {
+  return !!garantirSenhaPadrao();
+}
 
 /** Verifica a senha contra o hash PBKDF2 salvo neste aparelho. */
 async function verifyLocal(senha) {
-  const auth = lerAuth();
+  const auth = garantirSenhaPadrao();
   if (!auth) return false;
   const hex = await authDerivar(senha, auth.salt, auth.iter);
   return authIguais(hex, auth.hash);
@@ -85,7 +104,7 @@ async function trocarSenhaLocal(atual, nova) {
 }
 
 function tokenSessao() {
-  const auth = lerAuth();
+  const auth = garantirSenhaPadrao();
   return auth ? "v1:" + auth.hash.slice(0, 16) : "";
 }
 
