@@ -1,3 +1,5 @@
+const APP_VERSAO = "0.4";
+const VERSAO_KEY = "anota-conta-versao-vista";
 const dlg = document.getElementById("dlg");
 let estado = carregar();
 let atual = estado.mesAtual || mesHoje();
@@ -167,12 +169,13 @@ function viewMais() {
     <button class="card" style="width:100%;text-align:left" onclick="exportarExcel()">Baixar Excel do ano ${ano}</button>
     <button class="card" style="width:100%;text-align:left" onclick="exportarBackup()"><strong>Exportar backup</strong><div class="meta">Baixa um arquivo .json com todos os meses, contas e categorias</div></button>
     <button class="card" style="width:100%;text-align:left" onclick="document.getElementById('fileIn').click()"><strong>Importar backup</strong><div class="meta">Carrega um arquivo .json exportado pelo Anota Conta</div></button>
+    <button class="card" style="width:100%;text-align:left" onclick="abrirImportarExcel()"><strong>Importar planilha (Excel)</strong><div class="meta">Carrega um .xlsx com uma aba por mês (JAN a DEZ), como o Baixar Excel</div></button>
     <button class="card" style="width:100%;text-align:left" onclick="copiarProx()">Copiar mês para o próximo</button>
-    <div class="warn">O Excel abre uma aba por mês do ano. O backup é o arquivo para guardar no Drive, no e-mail ou no WhatsApp e passar os dados para outro aparelho. Tudo continua neste aparelho.</div>
+    <div class="warn">O Excel abre uma aba por mês do ano e pode ser importado de volta. O backup é o arquivo para guardar no Drive, no e-mail ou no WhatsApp e passar os dados para outro aparelho. Tudo continua neste aparelho.</div>
     <h2 style="margin-top:22px">Acesso</h2>
     <button class="card" style="width:100%;text-align:left" onclick="abrirTrocaSenha()"><strong>Trocar senha</strong><div class="meta">Altera a senha salva neste aparelho</div></button>
     <button class="card" style="width:100%;text-align:left" onclick="sairApp()"><strong>Sair</strong><div class="meta">Bloqueia o app até digitar a senha de novo</div></button>
-    <p class="hint" style="margin-top:18px;text-align:center;line-height:1.5"><strong>Anota Conta</strong><br>Versão 0.3<br>© ${new Date().getFullYear()} webdev. Todos os direitos reservados.</p>`;
+    <p class="hint" style="margin-top:18px;text-align:center;line-height:1.5"><strong>Anota Conta</strong><br>Versão ${APP_VERSAO}<br>© ${new Date().getFullYear()} webdev. Todos os direitos reservados.</p>`;
 }
 function pintarchips(boxId, opcoes, campo) {
   const box = document.getElementById(boxId);
@@ -588,6 +591,275 @@ document.getElementById("fileIn").addEventListener("change", async e => {
   }
 });
 
+/* ---------- Planilha (Excel): importar ---------- */
+const MESES_NORM = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const COLS_XLSX = {
+  nome: ["nome", "conta", "descricao"],
+  valor: ["valor", "valor (r$)", "valor r$", "r$"],
+  status: ["status", "situacao"],
+  categoria: ["categoria", "tipo"],
+  data: ["data", "data do pagamento", "data pagamento", "vencimento"],
+  forma: ["forma", "forma de pagamento", "como pagou", "pagamento"],
+  obs: ["observacao", "observacoes", "obs", "obs."],
+  repete: ["repete", "repete todo mes", "recorrente"]
+};
+function abrirImportarExcel() {
+  if (typeof XLSX === "undefined") {
+    aviso("Para importar o Excel precisa de internet na primeira vez. Sem rede, use o Importar backup.", "nok");
+    return;
+  }
+  document.getElementById("fileXlsx").click();
+}
+function celulaVazia(v) { return v === null || v === undefined || String(v).trim() === ""; }
+function mesDaAba(nome) {
+  const n = normNome(nome);
+  if (n === "ano") return null;
+  const m = n.match(/^(jan(?:eiro)?|fev(?:ereiro)?|mar(?:co)?|abr(?:il)?|mai(?:o)?|jun(?:ho)?|jul(?:ho)?|ago(?:sto)?|set(?:embro)?|out(?:ubro)?|nov(?:embro)?|dez(?:embro)?)(?![a-z])/);
+  if (!m) return null;
+  const ano = n.match(/(?:^|\D)((?:19|20)\d{2})(?:\D|$)/);
+  return {mes: MESES_NORM.indexOf(m[1].slice(0, 3)) + 1, ano: ano ? Number(ano[1]) : null};
+}
+function anoDoArquivo(nome) {
+  const s = String(nome || "");
+  const m = s.match(/anota-conta-(\d{4})/i) || s.match(/(?:^|\D)((?:19|20)\d{2})(?:\D|$)/);
+  return m ? Number(m[1]) : null;
+}
+function mapaColunas(linha) {
+  const mapa = {};
+  (linha || []).forEach((v, idx) => {
+    const n = normNome(v);
+    if (!n) return;
+    for (const [campo, nomes] of Object.entries(COLS_XLSX)) {
+      if (mapa[campo] === undefined && nomes.includes(n)) { mapa[campo] = idx; break; }
+    }
+  });
+  return mapa.nome !== undefined ? mapa : null;
+}
+function valorPlanilha(v) {
+  if (typeof v === "number") return isFinite(v) ? Math.round(v * 100) / 100 : 0;
+  let s = String(v || "").replace(/r\$/i, "").replace(/\s/g, "").trim();
+  if (!s) return 0;
+  const neg = /^-|^\(.*\)$/.test(s);
+  s = s.replace(/[()\-+]/g, "");
+  if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+  else if ((s.match(/\./g) || []).length > 1 || /^\d{1,3}\.\d{3}$/.test(s)) s = s.replace(/\./g, "");
+  const n = Number(s);
+  return isFinite(n) ? (neg ? -n : n) : 0;
+}
+function statusPlanilha(v) {
+  const n = normNome(v);
+  if (["pago", "paga", "ok", "sim", "quitado", "pago (ok)"].includes(n)) return "pago";
+  if (["nok", "nao pago", "nao paga", "nao pago (nok)", "atrasado"].includes(n)) return "nok";
+  return "pendente";
+}
+function repetePlanilha(v) {
+  if (v === true) return true;
+  return ["sim", "s", "x", "yes", "true", "1", "verdadeiro"].includes(normNome(v));
+}
+function formaPlanilha(v) {
+  const n = normNome(v);
+  if (!n) return "";
+  const exata = FORMAS.find(f => normNome(f) === n);
+  if (exata) return exata;
+  const parcial = FORMAS.find(f => n.includes(normNome(f)));
+  return parcial || "Outro";
+}
+function isoData(y, m, d) {
+  const dt = new Date(y, m - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return "";
+  return y + "-" + String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+}
+function dataPlanilha(v) {
+  if (celulaVazia(v)) return "";
+  if (v instanceof Date && !isNaN(v)) return isoData(v.getFullYear(), v.getMonth() + 1, v.getDate());
+  if (typeof v === "number") {
+    if (v < 1 || v > 2958465) return "";
+    const dt = new Date(Date.UTC(1899, 11, 30) + Math.floor(v) * 86400000);
+    return isoData(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate());
+  }
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return isoData(+m[1], +m[2], +m[3]);
+  m = s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2}|\d{4})$/);
+  if (m) {
+    let y = +m[3];
+    if (y < 100) y += 2000;
+    return isoData(y, +m[2], +m[1]);
+  }
+  if (/^\d+(\.\d+)?$/.test(s)) return dataPlanilha(Number(s));
+  return "";
+}
+function chaveMes(ano, mes) { return ano + "-" + String(mes).padStart(2, "0"); }
+// Lê as linhas da aba a partir do cabeçalho. Para na primeira linha em branco ou nas linhas de total.
+function linhasDaAba(ws) {
+  const rows = XLSX.utils.sheet_to_json(ws, {header: 1, raw: true, defval: ""});
+  let ini = -1, mapa = null;
+  for (let r = 0; r < Math.min(rows.length, 15); r++) {
+    mapa = mapaColunas(rows[r]);
+    if (mapa) { ini = r; break; }
+  }
+  if (!mapa) return null;
+  const out = [];
+  for (let r = ini + 1; r < rows.length; r++) {
+    const row = rows[r] || [];
+    if (row.every(celulaVazia)) break;
+    const pega = campo => mapa[campo] === undefined ? "" : row[mapa[campo]];
+    const nome = String(pega("nome") ?? "").trim();
+    if (/^total\b/.test(normNome(nome))) break;
+    if (!nome) continue;
+    out.push({
+      nome,
+      valor: valorPlanilha(pega("valor")),
+      status: statusPlanilha(pega("status")),
+      categoria: String(pega("categoria") ?? "").trim(),
+      data: dataPlanilha(pega("data")),
+      forma: formaPlanilha(pega("forma")),
+      obs: String(pega("obs") ?? "").trim(),
+      repete: repetePlanilha(pega("repete"))
+    });
+  }
+  return out;
+}
+function pedirAno() {
+  const d = document.getElementById("dlgAno");
+  const form = document.getElementById("anoForm");
+  const inp = document.getElementById("fAno");
+  const erro = document.getElementById("anoErro");
+  inp.value = new Date().getFullYear();
+  erro.hidden = true;
+  return new Promise(resolve => {
+    let valor = null;
+    const enviar = e => {
+      e.preventDefault();
+      const n = Number(inp.value);
+      if (!Number.isInteger(n) || n < 1900 || n > 2100) {
+        erro.textContent = "Digite um ano válido, por exemplo " + new Date().getFullYear() + ".";
+        erro.hidden = false; inp.focus(); return;
+      }
+      valor = n; d.close();
+    };
+    const cancelar = () => { valor = null; d.close(); };
+    form.addEventListener("submit", enviar);
+    document.getElementById("anoCancelar").addEventListener("click", cancelar);
+    d.addEventListener("close", () => {
+      form.removeEventListener("submit", enviar);
+      document.getElementById("anoCancelar").removeEventListener("click", cancelar);
+      resolve(valor);
+    }, {once: true});
+    d.showModal();
+    setTimeout(() => { try { inp.select(); } catch (_) {} }, 40);
+  });
+}
+// Devolve {meses: {"AAAA-MM": [linhas]}, semData} ou null se não achou nada no formato.
+async function lerPlanilha(wb, nomeArquivo) {
+  const porAba = [], soltas = [];
+  wb.SheetNames.forEach(nome => {
+    if (normNome(nome) === "ano") return;
+    const linhas = linhasDaAba(wb.Sheets[nome]);
+    if (!linhas) return;
+    const m = mesDaAba(nome);
+    if (m) porAba.push({...m, linhas});
+    else soltas.push(...linhas); // aba com outro nome: cada conta vai para o mês da própria data
+  });
+  if (!porAba.some(a => a.linhas.length) && !soltas.length) return null;
+  let anoArq = anoDoArquivo(nomeArquivo);
+  if (porAba.some(a => a.linhas.length && !a.ano) && !anoArq) {
+    anoArq = await pedirAno();
+    if (!anoArq) return {cancelado: true};
+  }
+  const meses = {};
+  let semData = 0;
+  porAba.forEach(a => {
+    if (!a.linhas.length) return;
+    const k = chaveMes(a.ano || anoArq, a.mes);
+    (meses[k] = meses[k] || []).push(...a.linhas);
+  });
+  soltas.forEach(l => {
+    if (!l.data) { semData++; return; }
+    const k = l.data.slice(0, 7);
+    (meses[k] = meses[k] || []).push(l);
+  });
+  return {meses, semData};
+}
+function idCategoriaPorNome(nome) {
+  const n = normNome(nome);
+  if (!n || n === "sem categoria") return "basico";
+  const cs = cats();
+  const achou = cs.find(c => normNome(c.nome) === n) || cs.find(c => normNome(c.id) === n);
+  if (achou) return achou.id;
+  const limpo = String(nome).trim().replace(/\s+/g, " ");
+  let id = slugCat(limpo), k = 2;
+  const base = id;
+  while (cs.some(c => c.id === id)) id = base + "-" + (k++);
+  cs.push({id, nome: limpo});
+  return id;
+}
+function aplicarPlanilha(meses, modo) {
+  let contas = 0, repetidas = 0;
+  const tocados = [];
+  Object.keys(meses).sort().forEach(k => {
+    const novos = meses[k].map(l => item(l.nome, l.valor, l.status, idCategoriaPorNome(l.categoria), l.data, l.forma, l.repete, l.obs));
+    if (modo === "substituir") {
+      estado.meses[k] = novos;
+      contas += novos.length;
+    } else {
+      const antes = (estado.meses[k] || []).slice();
+      const add = novos.filter(n => {
+        if (antes.some(a => mesmaConta(a, n))) { repetidas++; return false; }
+        return true;
+      });
+      if (!add.length) return;
+      estado.meses[k] = antes.concat(add);
+      contas += add.length;
+    }
+    tocados.push(k);
+  });
+  return {contas, repetidas, tocados};
+}
+document.getElementById("fileXlsx").addEventListener("change", async e => {
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  if (typeof XLSX === "undefined") {
+    aviso("Para importar o Excel precisa de internet na primeira vez. Sem rede, use o Importar backup.", "nok");
+    return;
+  }
+  let wb = null;
+  try { wb = XLSX.read(await f.arrayBuffer(), {type: "array"}); } catch (_) { wb = null; }
+  if (!wb) { aviso("Não consegui abrir esse arquivo. Escolha uma planilha .xlsx.", "nok"); return; }
+  let lido = null;
+  try { lido = await lerPlanilha(wb, f.name); } catch (_) { lido = null; }
+  if (lido && lido.cancelado) return;
+  const chaves = lido ? Object.keys(lido.meses).sort() : [];
+  if (!chaves.length) {
+    aviso("Não encontrei contas na planilha. Use abas JAN a DEZ com as colunas Nome, Valor, Status, Categoria, Data, Forma, Observação e Repete.", "nok");
+    return;
+  }
+  const qtdContas = chaves.reduce((a, k) => a + lido.meses[k].length, 0);
+  const nomesMeses = chaves.map(tituloMes).join(", ");
+  const escolha = await perguntar("Importar planilha",
+    `A planilha tem ${plural(qtdContas, "conta", "contas")} em ${plural(chaves.length, "mês", "meses")} (${nomesMeses}). ` +
+    `Substituir apaga as contas atuais desses meses e coloca as da planilha. Juntar mantém as atuais e não repete contas iguais.` +
+    (lido.semData ? ` ${plural(lido.semData, "linha sem data foi ignorada", "linhas sem data foram ignoradas")}.` : ""), [
+      {rotulo: "Substituir os meses da planilha", classe: "main", valor: "substituir"},
+      {rotulo: "Juntar", classe: "ghost", valor: "juntar"},
+      {rotulo: "Cancelar", classe: "ghost", valor: null}
+    ], true);
+  if (!escolha) return;
+  try {
+    const r = aplicarPlanilha(lido.meses, escolha);
+    atual = r.tocados[r.tocados.length - 1] || atual;
+    persist(); render();
+    let msg = r.contas
+      ? `${plural(r.contas, "conta importada", "contas importadas")} em ${plural(r.tocados.length, "mês", "meses")}`
+      : "Nada novo para importar";
+    if (r.repetidas) msg += ` · ${r.repetidas === 1 ? "1 repetida ignorada" : r.repetidas + " repetidas ignoradas"}`;
+    aviso(msg + ".");
+  } catch (_) {
+    aviso("Não foi possível importar essa planilha.", "nok");
+  }
+});
+
 if ("serviceWorker" in navigator && location.protocol !== "file:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }
@@ -625,7 +897,7 @@ const dlgSenha = document.getElementById("dlgSenha");
 
 function atualizarLoginRodape() {
   const el = document.getElementById("loginRodape");
-  if (el) el.textContent = "Anota Conta v0.3 · © " + new Date().getFullYear() + " webdev";
+  if (el) el.textContent = "Anota Conta v" + APP_VERSAO + " · © " + new Date().getFullYear() + " webdev";
 }
 
 function prepararLogin() {
@@ -647,6 +919,32 @@ function bloquearApp() {
 function desbloquearApp() {
   document.body.classList.remove("travado");
   ir("mes");
+  setTimeout(avisoVersaoNova, 60);
+}
+
+/* ---------- Aviso de versão nova (depois do login) ---------- */
+function versaoVista() {
+  try { return localStorage.getItem(VERSAO_KEY) || ""; } catch (_) { return ""; }
+}
+function marcarVersaoVista() {
+  try { localStorage.setItem(VERSAO_KEY, APP_VERSAO); } catch (_) {}
+}
+let avisoVersaoAberto = false;
+async function avisoVersaoNova() {
+  if (avisoVersaoAberto || versaoVista() === APP_VERSAO) return;
+  if (document.body.classList.contains("travado")) return;
+  if (document.getElementById("dlgConf").open) return;
+  avisoVersaoAberto = true;
+  const escolha = await perguntar(`Anota Conta atualizado para a v${APP_VERSAO}`,
+    "Recomendamos exportar seu backup (JSON ou Excel). Se seus dados não aparecerem, importe o backup em Mais.", [
+      {rotulo: "Exportar backup agora", classe: "main", valor: "json"},
+      {rotulo: "Baixar Excel", classe: "ghost", valor: "excel"},
+      {rotulo: "Depois", classe: "ghost", valor: null}
+    ], true);
+  marcarVersaoVista();
+  avisoVersaoAberto = false;
+  if (escolha === "json") exportarBackup();
+  else if (escolha === "excel") exportarExcel();
 }
 
 async function sairApp() {
@@ -657,7 +955,7 @@ async function sairApp() {
   if (ok !== "sair") return;
   fecharSessao();
   if (selecao) { selecao = null; atualizarSelbar(); }
-  ["dlg","dlgConf","dlgCat","dlgSenha"].forEach(id => {
+  ["dlg","dlgConf","dlgCat","dlgSenha","dlgAno"].forEach(id => {
     const d = document.getElementById(id);
     if (d && d.open) d.close();
   });

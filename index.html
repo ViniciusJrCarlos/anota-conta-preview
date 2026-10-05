@@ -32,7 +32,7 @@
       </div>
       <button type="submit" id="loginBtn" class="btn main">Entrar</button>
       <p id="loginErro" class="login-erro" role="alert"></p>
-      <p class="login-rodape" id="loginRodape">Anota Conta v0.3 · © 2026 webdev</p>
+      <p class="login-rodape" id="loginRodape">Anota Conta v0.4 · © 2026 webdev</p>
     </form>
   </section>
 
@@ -139,6 +139,19 @@
       </div>
     </form>
   </dialog>
+  <dialog id="dlgAno">
+    <form class="sheet" id="anoForm" novalidate>
+      <h2>De qual ano é a planilha?</h2>
+      <p class="hint" style="margin:0 0 4px">Não encontrei o ano no nome do arquivo (ex.: anota-conta-2026.xlsx).</p>
+      <label for="fAno">Ano</label>
+      <input id="fAno" type="number" inputmode="numeric" min="1900" max="2100" step="1" />
+      <p class="hint cat-aviso nok-txt" id="anoErro" hidden></p>
+      <div class="actions">
+        <button type="button" class="btn ghost" id="anoCancelar">Cancelar</button>
+        <button class="btn main">Continuar</button>
+      </div>
+    </form>
+  </dialog>
   <div class="selbar" id="selbar" hidden>
     <span class="selbar-n" id="selN">0 selecionados</span>
     <button type="button" class="btn ghost" onclick="sairSelecao()">Cancelar</button>
@@ -146,6 +159,7 @@
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <input type="file" id="fileIn" accept="application/json,.json" hidden />
+  <input type="file" id="fileXlsx" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden />
 
   <script src="js/store.js"></script>
   <script src="js/themes.js"></script>
