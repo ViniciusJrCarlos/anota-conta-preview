@@ -31,8 +31,9 @@
         </div>
       </div>
       <button type="submit" id="loginBtn" class="btn main">Entrar</button>
+      <p class="login-instalar" id="loginInstalarWrap"><button type="button" class="link-instalar" id="btnInstalarAppLogin">Instalar app</button></p>
       <p id="loginErro" class="login-erro" role="alert"></p>
-      <p class="login-rodape" id="loginRodape">Anota Conta v0.4 · © 2026 webdev</p>
+      <p class="login-rodape" id="loginRodape">Anota Conta v0.5 · © 2026 webdev</p>
     </form>
   </section>
 
@@ -151,6 +152,39 @@
         <button class="btn main">Continuar</button>
       </div>
     </form>
+  </dialog>
+  <dialog id="dlgInstalar" aria-labelledby="instTitulo">
+    <div class="sheet" id="instTela1">
+      <h2 id="instTitulo">Instale o Anota Conta no celular ou no computador</h2>
+      <p class="hint" id="instTexto" style="margin:0">Com um toque o Anota Conta vai para a tela inicial ou para a área de trabalho e funciona mesmo sem internet.</p>
+      <p class="hint inst-aviso" id="instAvisoSafari" hidden></p>
+      <div class="actions">
+        <button type="button" class="btn ghost" id="instAgoraNao">Agora não</button>
+        <button type="button" class="btn main" id="instInstalar">Instalar</button>
+      </div>
+      <p class="inst-link-wrap"><button type="button" class="link-instalar" id="instPassoAPasso">Ver passo a passo</button></p>
+    </div>
+    <div class="sheet" id="instTela2" hidden>
+      <h2 id="instTitulo2">Como instalar</h2>
+      <div class="inst-texto" id="instSecoes">
+        <div class="inst-bloco" data-aparelho="pc">
+          <p class="inst-sec"><strong>No computador (Chrome ou Edge)</strong><span class="inst-tag">este aparelho</span></p>
+          <p>Clique em Instalar na barra de endereço ou no menu ⋮ &gt; Instalar Anota Conta. No Edge, o menu é ··· &gt; Aplicativos &gt; Instalar.</p>
+        </div>
+        <div class="inst-bloco" data-aparelho="android">
+          <p class="inst-sec"><strong>No Android (Chrome)</strong><span class="inst-tag">este aparelho</span></p>
+          <p>Toque em Instalar ou no menu ⋮ &gt; Adicionar à tela inicial.</p>
+        </div>
+        <div class="inst-bloco" data-aparelho="ios">
+          <p class="inst-sec"><strong>No iPhone ou iPad (Safari)</strong><span class="inst-tag">este aparelho</span></p>
+          <p>Abra no Safari, toque em Compartilhar (quadrado com seta para cima) e depois em Adicionar à Tela de Início.</p>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn ghost" id="instVoltar">Voltar</button>
+        <button type="button" class="btn main" id="instEntendi">Entendi</button>
+      </div>
+    </div>
   </dialog>
   <div class="selbar" id="selbar" hidden>
     <span class="selbar-n" id="selN">0 selecionados</span>

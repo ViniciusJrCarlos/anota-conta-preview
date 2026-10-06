@@ -1,4 +1,4 @@
-const APP_VERSAO = "0.4";
+const APP_VERSAO = "0.5";
 const VERSAO_KEY = "anota-conta-versao-vista";
 const dlg = document.getElementById("dlg");
 let estado = carregar();
@@ -172,6 +172,8 @@ function viewMais() {
     <button class="card" style="width:100%;text-align:left" onclick="abrirImportarExcel()"><strong>Importar planilha (Excel)</strong><div class="meta">Carrega um .xlsx com uma aba por mês (JAN a DEZ), como o Baixar Excel</div></button>
     <button class="card" style="width:100%;text-align:left" onclick="copiarProx()">Copiar mês para o próximo</button>
     <div class="warn">O Excel abre uma aba por mês do ano e pode ser importado de volta. O backup é o arquivo para guardar no Drive, no e-mail ou no WhatsApp e passar os dados para outro aparelho. Tudo continua neste aparelho.</div>
+    ${appJaInstalado() ? "" : `<h2 style="margin-top:22px">App</h2>
+    <button class="card" id="maisInstalar" style="width:100%;text-align:left" onclick="abrirInstalar()"><strong>Instalar app</strong><div class="meta">Coloca o Anota Conta na tela inicial ou na área de trabalho e usa offline</div></button>`}
     <h2 style="margin-top:22px">Acesso</h2>
     <button class="card" style="width:100%;text-align:left" onclick="abrirTrocaSenha()"><strong>Trocar senha</strong><div class="meta">Altera a senha salva neste aparelho</div></button>
     <button class="card" style="width:100%;text-align:left" onclick="sairApp()"><strong>Sair</strong><div class="meta">Bloqueia o app até digitar a senha de novo</div></button>
@@ -955,7 +957,7 @@ async function sairApp() {
   if (ok !== "sair") return;
   fecharSessao();
   if (selecao) { selecao = null; atualizarSelbar(); }
-  ["dlg","dlgConf","dlgCat","dlgSenha","dlgAno"].forEach(id => {
+  ["dlg","dlgConf","dlgCat","dlgSenha","dlgAno","dlgInstalar"].forEach(id => {
     const d = document.getElementById(id);
     if (d && d.open) d.close();
   });
@@ -1029,6 +1031,119 @@ document.getElementById("loginForm").addEventListener("submit", async ev => {
   }
   btn.disabled = false;
 });
+
+/* ---------- Instalar app (PWA) — v0.5 ---------- */
+// Só abre quando a pessoa toca em "Instalar app" (login ou Mais). Nunca abre sozinho.
+let deferredInstall = null;   // evento beforeinstallprompt guardado (Chrome/Edge no PC e Android)
+let instaladoAgora = false;   // virou true no evento appinstalled
+
+function ehIOS() {
+  const ua = navigator.userAgent || "";
+  return /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === "MacIntel" && (navigator.maxTouchPoints || 0) > 1);
+}
+function iosForaDoSafari() {
+  return ehIOS() && /CriOS|FxiOS|EdgiOS/.test(navigator.userAgent || "");
+}
+function tipoAparelho() {
+  if (ehIOS()) return "ios";
+  if (/Android/i.test(navigator.userAgent || "")) return "android";
+  return "pc";
+}
+function appJaInstalado() {
+  if (instaladoAgora) return true;
+  try {
+    if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return true;
+    if (window.navigator && window.navigator.standalone === true) return true;
+  } catch (_) {}
+  return false;
+}
+function atualizarLinkInstalar() {
+  const wrap = document.getElementById("loginInstalarWrap");
+  if (wrap) wrap.hidden = appJaInstalado();
+  const card = document.getElementById("maisInstalar");
+  if (card && appJaInstalado() && tela === "mais") render();
+}
+function mostrarTelaInstalar(n) {
+  const t1 = document.getElementById("instTela1");
+  const t2 = document.getElementById("instTela2");
+  if (!t1 || !t2) return;
+  t1.hidden = n !== 1;
+  t2.hidden = n !== 2;
+}
+function prepararTextosInstalar() {
+  const ios = ehIOS();
+  const txt = document.getElementById("instTexto");
+  const avisoSafari = document.getElementById("instAvisoSafari");
+  const btn = document.getElementById("instInstalar");
+  if (ios) {
+    txt.textContent = "No iPhone/iPad: abra no Safari, toque em Compartilhar (quadrado com seta para cima) e depois em Adicionar à Tela de Início.";
+    btn.textContent = "Entendi";
+  } else {
+    txt.textContent = "Com um toque o Anota Conta vai para a tela inicial ou para a área de trabalho e funciona mesmo sem internet.";
+    btn.textContent = "Instalar";
+  }
+  const fora = iosForaDoSafari();
+  avisoSafari.hidden = !fora;
+  avisoSafari.textContent = fora
+    ? "Você está em outro navegador. No iPhone/iPad só dá para instalar pelo Safari: copie o link e abra no Safari."
+    : "";
+  // Passo a passo: aparelho detectado primeiro e destacado
+  const box = document.getElementById("instSecoes");
+  const atual = tipoAparelho();
+  const blocos = Array.from(box.querySelectorAll(".inst-bloco"));
+  blocos.forEach(b => b.classList.toggle("atual", b.dataset.aparelho === atual));
+  const primeiro = blocos.find(b => b.dataset.aparelho === atual);
+  if (primeiro && box.firstElementChild !== primeiro) box.insertBefore(primeiro, box.firstElementChild);
+}
+function abrirInstalar() {
+  if (appJaInstalado()) { atualizarLinkInstalar(); aviso("O Anota Conta já está instalado neste aparelho."); return; }
+  prepararTextosInstalar();
+  mostrarTelaInstalar(1);
+  const d = document.getElementById("dlgInstalar");
+  if (d && !d.open) d.showModal();
+}
+function fecharInstalar() {
+  const d = document.getElementById("dlgInstalar");
+  if (d && d.open) d.close();
+}
+async function tocarInstalar() {
+  if (ehIOS()) { fecharInstalar(); return; }       // iOS não tem instalação de um toque
+  if (!deferredInstall) { mostrarTelaInstalar(2); return; } // sem o evento: mostra o passo a passo
+  const ev = deferredInstall;
+  deferredInstall = null;                           // o evento só pode ser usado uma vez
+  fecharInstalar();
+  try {
+    ev.prompt();
+    await ev.userChoice;
+  } catch (_) {}
+  atualizarLinkInstalar();
+}
+window.addEventListener("beforeinstallprompt", ev => {
+  ev.preventDefault();      // guarda para usar só quando a pessoa tocar em Instalar
+  deferredInstall = ev;
+});
+window.addEventListener("appinstalled", () => {
+  deferredInstall = null;
+  instaladoAgora = true;
+  fecharInstalar();
+  atualizarLinkInstalar();
+});
+(function ligarInstalarUI() {
+  const d = document.getElementById("dlgInstalar");
+  document.getElementById("btnInstalarAppLogin").addEventListener("click", abrirInstalar);
+  document.getElementById("instInstalar").addEventListener("click", tocarInstalar);
+  document.getElementById("instAgoraNao").addEventListener("click", fecharInstalar);
+  document.getElementById("instPassoAPasso").addEventListener("click", () => mostrarTelaInstalar(2));
+  document.getElementById("instVoltar").addEventListener("click", () => mostrarTelaInstalar(1));
+  document.getElementById("instEntendi").addEventListener("click", fecharInstalar);
+  d.addEventListener("close", () => mostrarTelaInstalar(1));
+  try {
+    const mq = window.matchMedia && window.matchMedia("(display-mode: standalone)");
+    if (mq && mq.addEventListener) mq.addEventListener("change", atualizarLinkInstalar);
+  } catch (_) {}
+  atualizarLinkInstalar();
+})();
 
 aplicarTema(estado);
 atualizarLoginRodape();

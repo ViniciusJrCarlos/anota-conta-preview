@@ -182,3 +182,24 @@ body.travado .login { display: flex; }
 .login-box .btn.main { width: 100%; margin-top: 16px; flex: none; }
 .login-erro { color: var(--nok); font-size: .84rem; min-height: 1.2em; margin: 10px 0 0; font-weight: 650; }
 .login-rodape { color: var(--muted); font-size: .78rem; margin: 18px 0 0; text-align: center; line-height: 1.4; }
+
+/* Instalar app (v0.5) */
+.login-instalar { margin: 12px 0 0; text-align: center; }
+.login-instalar[hidden] { display: none; }
+.link-instalar {
+  background: none; border: 0; padding: 4px 6px; cursor: pointer;
+  color: var(--ink); font: inherit; font-size: .86rem; font-weight: 750;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.link-instalar:hover { color: var(--marca); }
+.inst-link-wrap { margin: 14px 0 0; text-align: center; }
+.inst-aviso { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--warn); color: var(--ink); }
+.inst-texto p { margin: 0 0 10px; color: var(--muted); font-size: .86rem; line-height: 1.45; }
+.inst-texto .inst-bloco { margin-top: 14px; }
+.inst-texto .inst-bloco:first-child { margin-top: 0; }
+.inst-texto .inst-bloco p:last-child { margin-bottom: 0; }
+.inst-texto .inst-sec { color: var(--ink); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.inst-tag { display: none; font-size: .7rem; font-weight: 750; padding: 2px 8px; border-radius: 99px;
+  background: var(--marca); color: #111; }
+.inst-bloco.atual { border-left: 3px solid var(--marca); padding-left: 10px; }
+.inst-bloco.atual .inst-tag { display: inline-block; }
