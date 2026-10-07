@@ -1,4 +1,4 @@
-const APP_VERSAO = "0.5";
+const APP_VERSAO = "0.6";
 const VERSAO_KEY = "anota-conta-versao-vista";
 const dlg = document.getElementById("dlg");
 let estado = carregar();
@@ -152,26 +152,130 @@ function viewResumo() {
     <div class="card">
       <h3>Maiores pagamentos</h3>
       ${top.filter(i=>i.valor).map(i => `<div class="row" style="margin:6px 0"><span>${esc(i.nome)} · ${esc(i.forma||"—")}</span><b>${money(i.valor)}</b></div>`).join("") || `<p class="hint">Nada ainda.</p>`}
+    </div>
+    ${graficosResumo()}`;
+}
+/* ---------- Gráficos do Resumo (v0.6): SVG feito aqui, sem biblioteca ---------- */
+// Total de cada mês = soma das contas do mês, de todas as categorias (igual ao total do mês na tela).
+function totaisPorAno() {
+  const anos = {};
+  Object.keys(estado.meses || {}).forEach(k => {
+    if (!/^\d{4}-\d{2}$/.test(k)) return;
+    const arr = estado.meses[k] || [];
+    const m = Number(k.slice(5, 7)) - 1;
+    if (!arr.length || m < 0 || m > 11) return;
+    const a = anos[k.slice(0, 4)] = anos[k.slice(0, 4)] || {meses: Array(12).fill(null), total: 0, n: 0};
+    const t = arr.reduce((s, i) => s + Number(i.valor || 0), 0);
+    a.meses[m] = (a.meses[m] || 0) + t; a.total += t; a.n++;
+  });
+  return anos;
+}
+function passoGrafico(x) {
+  const pot = Math.pow(10, Math.floor(Math.log10(x || 1))), m = x / pot;
+  return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * pot;
+}
+function valorCurto(v) {
+  if (v >= 1000) return (v / 1000).toLocaleString("pt-BR", {maximumFractionDigits: 1}) + " mil";
+  return Math.round(v).toLocaleString("pt-BR");
+}
+function larguraGrafico() {
+  const main = document.getElementById("main");
+  const w = (main && main.clientWidth ? main.clientWidth : 360) - 32 - 30;
+  return Math.max(260, Math.min(660, Math.round(w)));
+}
+// Cor de cada ano: o mais recente em amarelo, o anterior em azul-acinzentado, os mais antigos em cinza.
+function classeAno(i, n) { return i === n - 1 ? "g2" : i === n - 2 ? "g1" : "g0"; }
+function pctVar(v) {
+  return (v > 0 ? "+" : "") + (v * 100).toLocaleString("pt-BR", {minimumFractionDigits: 1, maximumFractionDigits: 1}) + "%";
+}
+function svgTotalMes(anos, lista) {
+  const W = larguraGrafico(), H = Math.round(Math.max(170, Math.min(230, W * 0.46)));
+  const padL = 40, padR = 4, padT = 10, padB = 22, n = lista.length;
+  const vals = lista.flatMap(y => anos[y].meses.filter(v => v != null));
+  const maxV = Math.max(...vals, 1);
+  const passo = passoGrafico(maxV / 4), topo = Math.ceil(maxV / passo) * passo;
+  const alt = H - padT - padB, gw = (W - padL - padR) / 12;
+  const inner = gw * (n === 1 ? 0.62 : 0.84), bw = inner / n;
+  const yv = v => padT + alt - (v / topo) * alt;
+  let g = "";
+  for (let t = 0; t <= topo + 1e-9; t += passo) {
+    const y = yv(t).toFixed(1);
+    g += `<line x1="${padL}" x2="${W - padR}" y1="${y}" y2="${y}" class="grade"/><text x="${padL - 5}" y="${y}" dy="3.5" text-anchor="end">${valorCurto(t)}</text>`;
+  }
+  const fs = gw < 26 ? 9 : 10;
+  for (let m = 0; m < 12; m++) {
+    const x0 = padL + m * gw;
+    lista.forEach((y, k) => {
+      const v = anos[y].meses[m];
+      if (v == null) return;
+      const h = Math.max(v > 0 ? 1.5 : 0, (v / topo) * alt);
+      const x = x0 + (gw - inner) / 2 + k * bw;
+      g += `<rect x="${x.toFixed(1)}" y="${(padT + alt - h).toFixed(1)}" width="${Math.max(1, bw - (n > 1 ? 1 : 0)).toFixed(1)}" height="${h.toFixed(1)}" rx="2" class="${classeAno(k, n)}"><title>${MESES[m]} ${y}: ${money(v)}</title></rect>`;
+    });
+    g += `<text x="${(x0 + gw / 2).toFixed(1)}" y="${H - 7}" text-anchor="middle" style="font-size:${fs}px">${MESES[m]}</text>`;
+  }
+  return `<svg class="gsvg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Total por mês ${lista.join(", ")}">${g}</svg>`;
+}
+function graficosResumo() {
+  const anos = totaisPorAno();
+  const lista = Object.keys(anos).sort();
+  if (!lista.length) {
+    return `<div class="card"><h3>Gráficos</h3><p class="hint" style="margin:0">Os gráficos de cada mês e de cada ano aparecem aqui quando você anotar contas.</p></div>`;
+  }
+  const ult = lista.slice(-3), n = ult.length;
+  const legenda = n > 1
+    ? `<div class="glegenda">${ult.map((y, k) => `<span><i class="${classeAno(k, n)}"></i>${y}</span>`).join("")}</div>`
+    : "";
+  const meses = y => `${anos[y].n} ${anos[y].n === 1 ? "mês com contas" : "meses com contas"}`;
+  let anual;
+  if (lista.length === 1) {
+    const y = lista[0];
+    anual = `<div class="ganual-um"><b>${money(anos[y].total)}</b><span>${y} · ${meses(y)}</span></div>`;
+  } else {
+    const maxT = Math.max(...lista.map(y => anos[y].total), 1);
+    anual = lista.map((y, i) => {
+      const t = anos[y].total, ant = i ? anos[lista[i - 1]].total : null;
+      const v = ant ? t / ant - 1 : null;
+      const varTxt = v == null ? "" : `<span class="${v > 0 ? "nok-txt" : v < 0 ? "ok-txt" : ""}">${pctVar(v)} vs ${lista[i - 1]}</span> · `;
+      return `<div class="ganual"><span class="ano">${y}</span><div class="track"><i class="${classeAno(i, lista.length)}" style="width:${Math.max(1, Math.round(t / maxT * 100))}%"></i></div><b>${money(t)}</b></div>
+        <div class="ganual-sub">${varTxt}${meses(y)}</div>`;
+    }).join("") + `<p class="hint" style="margin:8px 0 0">Vermelho = gastou mais que no ano anterior; verde = gastou menos.</p>`;
+  }
+  return `<div class="card graf">
+      <h3>Total por mês</h3>
+      <p class="hint" style="margin:-4px 0 6px">${n > 1 ? ult.join(" x ") + (lista.length > 3 ? " (últimos 3 anos)" : "") : ult[0]}</p>
+      ${svgTotalMes(anos, ult)}
+      ${legenda}
+    </div>
+    <div class="card graf">
+      <h3>Total anual</h3>
+      ${anual}
     </div>`;
 }
+let resizeGraf = null;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeGraf);
+  resizeGraf = setTimeout(() => {
+    if (tela === "resumo" && !document.body.classList.contains("travado")) render();
+  }, 150);
+});
 function barra(nome, v, max) {
   const pct = Math.round((v/max)*100);
   return `<div class="gbar"><span>${esc(nome)}</span><div class="track"><i style="width:${pct}%"></i></div><b>${money(v)}</b></div>`;
 }
 function viewMais() {
   const t = estado.tema;
-  const ano = atual.slice(0,4);
   return `<h2>Aparência</h2>
     ${[["branca","Branca padrão"],["preta","Preta noturna"],["luz","Amarelo-luz"]].map(([k,l]) =>
       `<button class="card" style="width:100%;text-align:left;cursor:pointer;border-color:${t===k?"var(--marca)":"var(--line)"}"
         onclick="estado.tema='${k}';persist();render()"><strong>${l}</strong>${t===k?" · em uso":""}</button>`).join("")}
     <h2 style="margin-top:22px">Seus dados</h2>
-    <button class="card" style="width:100%;text-align:left" onclick="exportarExcel()">Baixar Excel do ano ${ano}</button>
+    <button class="card" style="width:100%;text-align:left" onclick="exportarExcel()"><strong>Baixar Excel</strong><div class="meta">Todos os anos: resumo com gráficos e uma aba por ano, mês a mês</div></button>
     <button class="card" style="width:100%;text-align:left" onclick="exportarBackup()"><strong>Exportar backup</strong><div class="meta">Baixa um arquivo .json com todos os meses, contas e categorias</div></button>
     <button class="card" style="width:100%;text-align:left" onclick="document.getElementById('fileIn').click()"><strong>Importar backup</strong><div class="meta">Carrega um arquivo .json exportado pelo Anota Conta</div></button>
-    <button class="card" style="width:100%;text-align:left" onclick="abrirImportarExcel()"><strong>Importar planilha (Excel)</strong><div class="meta">Carrega um .xlsx com uma aba por mês (JAN a DEZ), como o Baixar Excel</div></button>
+    <button class="card" style="width:100%;text-align:left" onclick="abrirImportarExcel()"><strong>Importar planilha (Excel)</strong><div class="meta">Carrega um .xlsx do Baixar Excel (uma aba por ano) ou com uma aba por mês (JAN a DEZ)</div></button>
     <button class="card" style="width:100%;text-align:left" onclick="copiarProx()">Copiar mês para o próximo</button>
-    <div class="warn">O Excel abre uma aba por mês do ano e pode ser importado de volta. O backup é o arquivo para guardar no Drive, no e-mail ou no WhatsApp e passar os dados para outro aparelho. Tudo continua neste aparelho.</div>
+    <div class="warn">O Excel traz um resumo com gráficos e uma aba por ano, com todos os meses, e pode ser importado de volta. O backup é o arquivo para guardar no Drive, no e-mail ou no WhatsApp e passar os dados para outro aparelho. Tudo continua neste aparelho.</div>
     ${appJaInstalado() ? "" : `<h2 style="margin-top:22px">App</h2>
     <button class="card" id="maisInstalar" style="width:100%;text-align:left" onclick="abrirInstalar()"><strong>Instalar app</strong><div class="meta">Coloca o Anota Conta na tela inicial ou na área de trabalho e usa offline</div></button>`}
     <h2 style="margin-top:22px">Acesso</h2>
@@ -374,32 +478,20 @@ function exportarBackup() {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
   aviso("Backup exportado.");
 }
+// v0.6: um arquivo com TODOS os anos (aba Resumo com gráficos + uma aba por ano). Gerado no aparelho, sem internet.
 function exportarExcel() {
-  if (typeof XLSX === "undefined") {
-    aviso("Para o Excel precisa de internet na primeira vez. Sem rede, use o Exportar backup.", "nok");
-    return;
-  }
-  const ano = atual.slice(0,4);
-  const wb = XLSX.utils.book_new();
-  const resumo = [["Mês","Pago","Pendente","Total"]];
-  for (let m = 1; m <= 12; m++) {
-    const k = ano + "-" + String(m).padStart(2,"0");
-    const arr = estado.meses[k] || [];
-    const rows = [["Nome","Valor","Status","Categoria","Data","Forma","Observação","Repete"]];
-    arr.forEach(i => rows.push([
-      i.nome, Number(i.valor||0), i.status, catNome(i.tipo), i.data || "", i.forma || "", i.obs || "", i.repete ? "sim" : "não"
-    ]));
-    const pago = arr.filter(i=>i.status==="pago").reduce((a,b)=>a+Number(b.valor||0),0);
-    const pend = arr.filter(i=>i.status!=="pago").reduce((a,b)=>a+Number(b.valor||0),0);
-    rows.push([]);
-    rows.push(["Total pago", pago]);
-    rows.push(["Total pendente", pend]);
-    rows.push(["Total", pago+pend]);
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), MESES[m-1]);
-    resumo.push([MESES[m-1] + " " + ano, pago, pend, pago+pend]);
-  }
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumo), "Ano");
-  XLSX.writeFile(wb, "anota-conta-" + ano + ".xlsx");
+  persist();
+  let dados = null;
+  try { dados = EXCEL.gerar(estado, catNome); } catch (_) { dados = undefined; }
+  if (dados === null) { aviso("Ainda não há contas para colocar no Excel.", "nok"); return; }
+  if (!dados) { aviso("Não foi possível gerar o Excel neste navegador. Use o Exportar backup.", "nok"); return; }
+  const a = document.createElement("a");
+  const url = URL.createObjectURL(new Blob([dados], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+  a.href = url;
+  a.download = "anota-conta-" + hojeISO() + ".xlsx";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  aviso("Excel baixado com todos os anos.");
 }
 
 /* ---------- Aviso rápido e diálogo de confirmação ---------- */
@@ -606,10 +698,6 @@ const COLS_XLSX = {
   repete: ["repete", "repete todo mes", "recorrente"]
 };
 function abrirImportarExcel() {
-  if (typeof XLSX === "undefined") {
-    aviso("Para importar o Excel precisa de internet na primeira vez. Sem rede, use o Importar backup.", "nok");
-    return;
-  }
   document.getElementById("fileXlsx").click();
 }
 function celulaVazia(v) { return v === null || v === undefined || String(v).trim() === ""; }
@@ -692,24 +780,34 @@ function dataPlanilha(v) {
   return "";
 }
 function chaveMes(ano, mes) { return ano + "-" + String(mes).padStart(2, "0"); }
-// Lê as linhas da aba a partir do cabeçalho. Para na primeira linha em branco ou nas linhas de total.
-function linhasDaAba(ws) {
-  const rows = XLSX.utils.sheet_to_json(ws, {header: 1, raw: true, defval: ""});
-  let ini = -1, mapa = null;
-  for (let r = 0; r < Math.min(rows.length, 15); r++) {
-    mapa = mapaColunas(rows[r]);
-    if (mapa) { ini = r; break; }
-  }
-  if (!mapa) return null;
-  const out = [];
-  for (let r = ini + 1; r < rows.length; r++) {
+// Linha que é só "JANEIRO 2026" (faixa de mês do Excel por ano).
+function bandaMes(row) {
+  const cheias = (row || []).filter(v => !celulaVazia(v));
+  if (cheias.length !== 1 || typeof cheias[0] !== "string") return null;
+  const n = normNome(cheias[0]);
+  if (!/^[a-z]+\.?\s*(de\s+)?(\/\s*)?(19|20)\d{2}$/.test(n)) return null;
+  const m = mesDaAba(n.replace(/\./, ""));
+  return m && m.ano ? m : null;
+}
+// Lê os blocos de contas de uma aba: cada cabeçalho (Nome/Conta, Valor...) abre um bloco, que vai até uma
+// linha em branco ou de total. Faixas "JANEIRO 2026" dizem o mês do bloco seguinte (formato por ano, v0.6).
+// No formato antigo (uma aba por mês) há um bloco só. Devolve null se a aba não tem cabeçalho.
+function blocosDaAba(rows) {
+  const blocos = [];
+  let mapa = null, bloco = null, banda = null;
+  for (let r = 0; r < rows.length; r++) {
     const row = rows[r] || [];
-    if (row.every(celulaVazia)) break;
+    if (row.every(celulaVazia)) { bloco = null; continue; }
+    const b = bandaMes(row);
+    if (b) { banda = b; bloco = null; continue; }
+    const m = mapaColunas(row);
+    if (m) { mapa = m; bloco = {banda, linhas: []}; blocos.push(bloco); banda = null; continue; }
+    if (!bloco) continue;
     const pega = campo => mapa[campo] === undefined ? "" : row[mapa[campo]];
     const nome = String(pega("nome") ?? "").trim();
-    if (/^total\b/.test(normNome(nome))) break;
+    if (/^total\b/.test(normNome(nome))) { bloco = null; continue; }
     if (!nome) continue;
-    out.push({
+    bloco.linhas.push({
       nome,
       valor: valorPlanilha(pega("valor")),
       status: statusPlanilha(pega("status")),
@@ -720,7 +818,7 @@ function linhasDaAba(ws) {
       repete: repetePlanilha(pega("repete"))
     });
   }
-  return out;
+  return blocos.length ? blocos : null;
 }
 function pedirAno() {
   const d = document.getElementById("dlgAno");
@@ -753,17 +851,22 @@ function pedirAno() {
   });
 }
 // Devolve {meses: {"AAAA-MM": [linhas]}, semData} ou null se não achou nada no formato.
+// wb = {nomes, abas: {nome: linhas[][]}} (js/xlsx.js).
 async function lerPlanilha(wb, nomeArquivo) {
-  const porAba = [], soltas = [];
-  wb.SheetNames.forEach(nome => {
-    if (normNome(nome) === "ano") return;
-    const linhas = linhasDaAba(wb.Sheets[nome]);
-    if (!linhas) return;
+  const porBanda = [], porAba = [], soltas = [];
+  wb.nomes.forEach(nome => {
+    const n = normNome(nome);
+    if (n === "ano" || n === "resumo") return;
+    const blocos = blocosDaAba(wb.abas[nome] || []);
+    if (!blocos) return;
     const m = mesDaAba(nome);
-    if (m) porAba.push({...m, linhas});
-    else soltas.push(...linhas); // aba com outro nome: cada conta vai para o mês da própria data
+    blocos.forEach(b => {
+      if (b.banda) porBanda.push({...b.banda, linhas: b.linhas}); // aba por ano: o mês vem da faixa
+      else if (m) porAba.push({...m, linhas: b.linhas});          // aba por mês (formato antigo)
+      else soltas.push(...b.linhas);                              // outra aba: cada conta vai para o mês da própria data
+    });
   });
-  if (!porAba.some(a => a.linhas.length) && !soltas.length) return null;
+  if (!porBanda.some(a => a.linhas.length) && !porAba.some(a => a.linhas.length) && !soltas.length) return null;
   let anoArq = anoDoArquivo(nomeArquivo);
   if (porAba.some(a => a.linhas.length && !a.ano) && !anoArq) {
     anoArq = await pedirAno();
@@ -771,7 +874,7 @@ async function lerPlanilha(wb, nomeArquivo) {
   }
   const meses = {};
   let semData = 0;
-  porAba.forEach(a => {
+  porBanda.concat(porAba).forEach(a => {
     if (!a.linhas.length) return;
     const k = chaveMes(a.ano || anoArq, a.mes);
     (meses[k] = meses[k] || []).push(...a.linhas);
@@ -822,19 +925,20 @@ document.getElementById("fileXlsx").addEventListener("change", async e => {
   const f = e.target.files[0];
   e.target.value = "";
   if (!f) return;
-  if (typeof XLSX === "undefined") {
-    aviso("Para importar o Excel precisa de internet na primeira vez. Sem rede, use o Importar backup.", "nok");
+  let wb = null, erroLer = "";
+  try { wb = await XLSXA.ler(await f.arrayBuffer()); } catch (err) { wb = null; erroLer = err && err.message; }
+  if (!wb) {
+    aviso(erroLer === "sem-descompressao"
+      ? "Este navegador é antigo para abrir essa planilha. Atualize o navegador ou use o Importar backup."
+      : "Não consegui abrir esse arquivo. Escolha uma planilha .xlsx.", "nok");
     return;
   }
-  let wb = null;
-  try { wb = XLSX.read(await f.arrayBuffer(), {type: "array"}); } catch (_) { wb = null; }
-  if (!wb) { aviso("Não consegui abrir esse arquivo. Escolha uma planilha .xlsx.", "nok"); return; }
   let lido = null;
   try { lido = await lerPlanilha(wb, f.name); } catch (_) { lido = null; }
   if (lido && lido.cancelado) return;
   const chaves = lido ? Object.keys(lido.meses).sort() : [];
   if (!chaves.length) {
-    aviso("Não encontrei contas na planilha. Use abas JAN a DEZ com as colunas Nome, Valor, Status, Categoria, Data, Forma, Observação e Repete.", "nok");
+    aviso("Não encontrei contas na planilha. Use o arquivo do Baixar Excel ou abas JAN a DEZ com as colunas Nome, Valor, Status, Categoria, Data, Forma, Observação e Repete.", "nok");
     return;
   }
   const qtdContas = chaves.reduce((a, k) => a + lido.meses[k].length, 0);

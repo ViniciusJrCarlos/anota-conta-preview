@@ -203,3 +203,27 @@ body.travado .login { display: flex; }
   background: var(--marca); color: #111; }
 .inst-bloco.atual { border-left: 3px solid var(--marca); padding-left: 10px; }
 .inst-bloco.atual .inst-tag { display: inline-block; }
+
+/* ---------- Gráficos do Resumo (v0.6) ---------- */
+:root, [data-tema="branca"] { --g0: #c9c9c9; --g1: #4a5d7a; --g2: #f5c518; }
+[data-tema="preta"] { --g0: #5c5c5c; --g1: #8fa3c4; --g2: #f5c518; }
+[data-tema="luz"] { --g0: #cbbb8c; --g1: #4a5d7a; --g2: #e3ad00; }
+.g0 { fill: var(--g0); background: var(--g0); }
+.g1 { fill: var(--g1); background: var(--g1); }
+.g2 { fill: var(--g2); background: var(--g2); }
+.gsvg { display: block; width: 100%; height: auto; margin-top: 4px; }
+.gsvg text { fill: var(--muted); font-size: 10px; font-family: inherit; }
+.gsvg .grade { stroke: var(--line); stroke-width: 1; }
+.glegenda { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 8px; font-size: .78rem; color: var(--muted); }
+.glegenda span { display: inline-flex; align-items: center; gap: 6px; }
+.glegenda i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.ganual { display: grid; grid-template-columns: 44px 1fr auto; gap: 8px; align-items: center; margin: 10px 0 2px; font-size: .85rem; }
+.ganual .ano { font-weight: 700; }
+.ganual .track { height: 14px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.ganual .track > i { display: block; height: 100%; border-radius: 99px; }
+.ganual b { white-space: nowrap; }
+.ganual-sub { margin-left: 52px; font-size: .74rem; color: var(--muted); }
+.ganual-sub .nok-txt, .ganual-sub .ok-txt { font-weight: 700; }
+.ok-txt { color: var(--ok); }
+.ganual-um b { display: block; font-size: 1.4rem; }
+.ganual-um span { color: var(--muted); font-size: .82rem; }

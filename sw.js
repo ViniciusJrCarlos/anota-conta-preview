@@ -1,4 +1,4 @@
-const CACHE = "anota-conta-v05-preview-1";
+const CACHE = "anota-conta-v06-preview-1";
 const ASSETS = [
   "./",
   "./index.html",
@@ -6,6 +6,8 @@ const ASSETS = [
   "./js/store.js",
   "./js/themes.js",
   "./js/auth.js",
+  "./js/xlsx.js",
+  "./js/excel.js",
   "./js/app.js",
   "./manifest.webmanifest",
   "./icons/icon.svg"
