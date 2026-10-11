@@ -1,4 +1,4 @@
-const APP_VERSAO = "0.6";
+const APP_VERSAO = "0.7";
 const VERSAO_KEY = "anota-conta-versao-vista";
 const dlg = document.getElementById("dlg");
 let estado = carregar();
@@ -74,7 +74,7 @@ function viewMes() {
     const real = items.indexOf(it);
     const [lb, cls] = badge(it.status);
     const bits = [catNome(it.tipo), it.forma, it.data ? fmtData(it.data) : "", it.repete ? "repete" : "", it.obs].filter(Boolean);
-    return `<article class="item ${it.status==="pago"?"pago":""}">
+    return `<article class="item ${it.status==="pago"?"pago":""}" data-idx="${real}">
       <button class="check" onclick="toggle(${real})"></button>
       <div onclick="abrirForm(${real})">
         <div class="name">${esc(it.nome)}</div>
@@ -98,7 +98,8 @@ function viewMes() {
       <button class="chip ${filtro==="todas"?"on":""}" onclick="filtro='todas';render()">Todas</button>
       ${usadas.map(c => `<button class="chip ${filtro===c.id?"on":""}" onclick="filtro='${esc(c.id)}';render()">${esc(c.nome)}</button>`).join("")}
     </div>
-    <div class="list">${htmlItems}</div>`;
+    <div class="list" id="listaContas">${htmlItems}</div>
+    ${vis.length > 1 ? `<p class="hint ordem-dica">Segure uma conta e arraste para mudar a ordem.</p>` : ""}`;
 }
 function viewMeses() {
   const keys = Object.keys(estado.meses).sort().reverse();
@@ -134,7 +135,6 @@ function viewResumo() {
     v: items.filter(i => (i.forma||"Outro")===f).reduce((a,b)=>a+Number(b.valor||0),0)
   })).filter(x => x.v > 0).sort((a,b)=>b.v-a.v);
   const maxF = Math.max(...porForma.map(x=>x.v), 1);
-  const top = [...items].sort((a,b)=>Number(b.valor||0)-Number(a.valor||0)).slice(0,5);
   return `<h2>Resumo · ${tituloMes(atual)}</h2>
     <div class="card">
       <h3>Pago x pendente</h3>
@@ -149,11 +149,65 @@ function viewResumo() {
       <h3>Pix, débito e crédito</h3>
       ${porForma.length ? porForma.map(x => barra(x.nome, x.v, maxF)).join("") : `<p class="hint">Marque a forma na conta para aparecer aqui.</p>`}
     </div>
-    <div class="card">
-      <h3>Maiores pagamentos</h3>
-      ${top.filter(i=>i.valor).map(i => `<div class="row" style="margin:6px 0"><span>${esc(i.nome)} · ${esc(i.forma||"—")}</span><b>${money(i.valor)}</b></div>`).join("") || `<p class="hint">Nada ainda.</p>`}
-    </div>
+    ${cardMaiores()}
     ${graficosResumo()}`;
+}
+/* ---------- Maiores pagamentos (v0.7): rosca com as 5 maiores contas + "Outras", no mês ou no ano ---------- */
+let maioresModo = "mes"; // "mes" = mês aberto · "ano" = ano do mês aberto (contas de mesmo nome somadas)
+function somaPorNome(listas) {
+  const m = new Map();
+  listas.flat().forEach(i => {
+    const k = normNome(i.nome); if (!k) return;
+    const x = m.get(k) || {nome: String(i.nome).trim(), v: 0};
+    x.v += Number(i.valor || 0); m.set(k, x);
+  });
+  return [...m.values()].map(x => ({...x, v: Math.round(x.v * 100) / 100})).sort((a, b) => b.v - a.v);
+}
+function mesesDoAno(ano) { return Array.from({length: 12}, (_, m) => estado.meses[ano + "-" + String(m + 1).padStart(2, "0")] || []); }
+function pctTxt(v) { return (v * 100).toLocaleString("pt-BR", {maximumFractionDigits: 1, minimumFractionDigits: v < 0.1 ? 1 : 0}) + "%"; }
+function svgRosca(fatias, total, legenda) {
+  const R = 58, C = 2 * Math.PI * R, S = 150, meio = S / 2;
+  const gap = fatias.length > 1 ? 2 : 0;
+  let acc = 0, arcos = "";
+  fatias.forEach((f, k) => {
+    const frac = f.v / total, len = Math.max(0.5, frac * C - gap);
+    arcos += `<circle cx="${meio}" cy="${meio}" r="${R}" fill="none" class="d${f.outras ? 5 : k}" stroke-width="22"
+      stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-acc * C).toFixed(2)}"
+      transform="rotate(-90 ${meio} ${meio})"><title>${esc(f.nome)}: ${money(f.v)} (${pctTxt(frac)})</title></circle>`;
+    acc += frac;
+  });
+  const txt = money(total), fs = txt.length > 13 ? 11.5 : txt.length > 11 ? 12.5 : 13.5;
+  return `<svg class="rosca" viewBox="0 0 ${S} ${S}" width="${S}" height="${S}" role="img" aria-label="Total ${esc(txt)} ${legenda}">
+    <circle cx="${meio}" cy="${meio}" r="${R}" fill="none" stroke="var(--line)" stroke-width="22"/>${arcos}
+    <text x="${meio}" y="${meio - 4}" text-anchor="middle" class="rosca-v" style="font-size:${fs}px">${esc(txt)}</text>
+    <text x="${meio}" y="${meio + 14}" text-anchor="middle" class="rosca-l">${legenda}</text></svg>`;
+}
+function cardMaiores() {
+  const ano = atual.slice(0, 4), noMes = maioresModo !== "ano";
+  const todas = somaPorNome(noMes ? [lista()] : mesesDoAno(ano)).filter(x => x.v > 0);
+  const total = Math.round(todas.reduce((a, x) => a + x.v, 0) * 100) / 100;
+  const top = todas.slice(0, 5);
+  const resto = Math.round(todas.slice(5).reduce((a, x) => a + x.v, 0) * 100) / 100;
+  const fatias = top.concat(resto > 0 ? [{nome: `Outras (${todas.length - 5})`, v: resto, outras: true}] : []);
+  const seg = `<div class="seg" role="group" aria-label="Período do gráfico">
+      <button type="button" class="${noMes ? "on" : ""}" aria-pressed="${noMes}" onclick="maioresModo='mes';render()">Mês</button>
+      <button type="button" class="${noMes ? "" : "on"}" aria-pressed="${!noMes}" onclick="maioresModo='ano';render()">Ano</button></div>`;
+  const comDados = mesesDoAno(ano).map((a, m) => a.length ? m : -1).filter(m => m >= 0);
+  const faixa = comDados.length ? MESES[comDados[0]] + (comDados.length > 1 ? "–" + MESES[comDados[comDados.length - 1]] : "") : "";
+  const sub = noMes
+    ? `${tituloMes(atual)} · ${todas.length === 1 ? "a única conta com valor" : todas.length > 5 ? "as 5 maiores contas do mês" : "as maiores contas do mês"}`
+    : `${ano}${faixa ? " · soma de " + faixa + " por conta" : ""}`;
+  const corpo = !fatias.length
+    ? `<p class="hint maiores-vazio">${noMes
+        ? (lista().length ? "As contas deste mês ainda estão sem valor. Coloque o valor nelas para ver o gráfico." : "Nenhuma conta neste mês ainda. Anote as contas para ver as maiores aqui.")
+        : `Sem contas com valor em ${ano}.`}</p>`
+    : `<div class="maiores">
+      ${svgRosca(fatias, total, noMes ? "no mês" : "no ano")}
+      <ol class="mlista">${fatias.map((f, k) => `<li><i class="d${f.outras ? 5 : k}"></i><span class="mn">${esc(f.nome)}</span>
+        <b>${money(f.v)}</b><span class="mp">${pctTxt(f.v / total)}</span></li>`).join("")}</ol>
+    </div>`;
+  return `<div class="card maiores-card"><div class="row" style="align-items:center;gap:8px"><h3 style="margin:0">Maiores pagamentos</h3>${seg}</div>
+    <p class="hint" style="margin:6px 0 4px">${sub}</p>${corpo}</div>`;
 }
 /* ---------- Gráficos do Resumo (v0.6): SVG feito aqui, sem biblioteca ---------- */
 // Total de cada mês = soma das contas do mês, de todas as categorias (igual ao total do mês na tela).
@@ -380,8 +434,142 @@ function abrirForm(idx=null) {
   pintarchips("formasBox", FORMAS, "forma");
   pintarCatsForm();
   btnApagar.hidden = idx==null;
+  pintarOrdemForm();
   dlg.showModal();
 }
+/* ---------- Ordem das contas (v0.7) ----------
+   A ordem é a própria ordem do array do mês (estado.meses[k]); não há campo novo, então backups antigos,
+   o JSON e o Excel (linhas na ordem do array) continuam compatíveis. Com um filtro de categoria ativo, só as
+   contas visíveis trocam de lugar entre si (as escondidas ficam onde estavam). */
+function idxVisiveis() {
+  return lista().map((it, i) => (filtro === "todas" || it.tipo === filtro) ? i : -1).filter(i => i >= 0);
+}
+// Move a conta visível da posição "de" para "para" (posições dentro da lista visível). Devolve o novo índice real.
+function moverVisivel(de, para) {
+  const arr = lista(), idx = idxVisiveis();
+  if (de === para || de < 0 || para < 0 || de >= idx.length || para >= idx.length) return idx[de];
+  const vis = idx.map(i => arr[i]);
+  const [it] = vis.splice(de, 1);
+  vis.splice(para, 0, it);
+  idx.forEach((i, k) => { arr[i] = vis[k]; });
+  persist();
+  return idx[para];
+}
+function pintarOrdemForm() {
+  const box = document.getElementById("ordemBox");
+  if (!box) return;
+  const idx = idxVisiveis(), pos = editando == null ? -1 : idx.indexOf(editando);
+  box.hidden = pos < 0 || idx.length < 2;
+  if (box.hidden) return;
+  document.getElementById("ordemPos").textContent = `${pos + 1}ª de ${idx.length}`;
+  document.getElementById("ordemSobe").disabled = pos === 0;
+  document.getElementById("ordemDesce").disabled = pos === idx.length - 1;
+}
+function moverNoForm(dlt) {
+  const idx = idxVisiveis(), pos = idx.indexOf(editando);
+  if (pos < 0) return;
+  editando = moverVisivel(pos, Math.max(0, Math.min(idx.length - 1, pos + dlt)));
+  render(); pintarOrdemForm();
+}
+(function ligarArrastarContas() {
+  const main = document.getElementById("main");
+  const SEGURAR = 500, TOLERA = 10, BORDA = 70;
+  let toque = null;   // {id, x0, y0, card, mouse, timer}
+  let arraste = null; // {card, cards, tops, alturas, de, para, y0doc, ultY, raf}
+  let ignorarClique = false;
+  const limiteTopo = () => { const h = document.querySelector("header.top"); return h ? Math.max(0, h.getBoundingClientRect().bottom) : 0; };
+  const limiteBase = () => { const n = document.querySelector("nav.tab"); return n ? n.getBoundingClientRect().top : innerHeight; };
+  function cancelarToque() { if (toque) { clearTimeout(toque.timer); toque = null; } }
+  main.addEventListener("pointerdown", e => {
+    ignorarClique = false;
+    if (tela !== "mes" || arraste || (e.pointerType === "mouse" && e.button !== 0)) return;
+    const card = e.target.closest(".list .item[data-idx]");
+    if (!card || document.querySelectorAll("#listaContas .item").length < 2) return;
+    cancelarToque();
+    toque = {id: e.pointerId, x0: e.clientX, y0: e.clientY, card, mouse: e.pointerType === "mouse"};
+    toque.timer = setTimeout(() => { if (toque) erguer(toque.card, toque.y0, true); }, SEGURAR);
+  });
+  function erguer(card, clientY, vibrar) {
+    const lista = document.getElementById("listaContas");
+    if (!lista || !card.isConnected) { cancelarToque(); return; }
+    const pid = toque && toque.id;
+    cancelarToque();
+    const cards = [...lista.querySelectorAll(".item")];
+    const sy = scrollY;
+    const rects = cards.map(c => c.getBoundingClientRect());
+    arraste = {card, cards, pid, tops: rects.map(r => r.top + sy), alturas: rects.map(r => r.height),
+      de: cards.indexOf(card), para: cards.indexOf(card), y0doc: clientY + sy, ultY: clientY, raf: 0};
+    arraste.passo = cards.length > 1 ? arraste.tops[1] - arraste.tops[0] - arraste.alturas[0] : 8;
+    lista.classList.add("ordenando"); card.classList.add("erguida");
+    document.body.classList.add("arrastando");
+    card.style.transform = "scale(1.03)";
+    ignorarClique = true;
+    if (vibrar && navigator.vibrate) { try { navigator.vibrate(25); } catch (_) {} }
+    arraste.raf = requestAnimationFrame(quadro);
+  }
+  function posicionar() {
+    const a = arraste, sy = scrollY, ydoc = a.ultY + sy, dy = ydoc - a.y0doc;
+    a.card.style.transform = `translateY(${dy}px) scale(1.03)`;
+    const centro = a.tops[a.de] + a.alturas[a.de] / 2 + dy;
+    let para = a.de;
+    for (let k = 0; k < a.cards.length; k++) {
+      if (k === a.de) continue;
+      const meio = a.tops[k] + a.alturas[k] / 2;
+      if (k < a.de && centro <= meio) { para = Math.min(para, k); }
+      if (k > a.de && centro >= meio) { para = Math.max(para, k); }
+    }
+    a.para = para;
+    const desloca = a.alturas[a.de] + a.passo;
+    a.cards.forEach((c, k) => {
+      if (k === a.de) return;
+      let t = 0;
+      if (a.de < para && k > a.de && k <= para) t = -desloca;
+      if (a.de > para && k < a.de && k >= para) t = desloca;
+      c.style.transform = t ? `translateY(${t}px)` : "";
+    });
+  }
+  function quadro() {
+    if (!arraste) return;
+    const y = arraste.ultY, topo = limiteTopo(), base = limiteBase();
+    let v = 0;
+    if (y < topo + BORDA) v = -Math.ceil((topo + BORDA - y) / BORDA * 14);
+    else if (y > base - BORDA) v = Math.ceil((y - (base - BORDA)) / BORDA * 14);
+    if (v) window.scrollBy(0, Math.max(-18, Math.min(18, v)));
+    posicionar();
+    arraste.raf = requestAnimationFrame(quadro);
+  }
+  function soltar(cancelou) {
+    const a = arraste; if (!a) return;
+    if (!cancelou) posicionar(); // usa a última posição do dedo/mouse, mesmo sem um quadro novo
+    arraste = null;
+    cancelAnimationFrame(a.raf);
+    document.body.classList.remove("arrastando");
+    if (!cancelou && a.para !== a.de) { moverVisivel(a.de, a.para); render(); }
+    else {
+      a.cards.forEach(c => { c.style.transform = ""; });
+      a.card.classList.remove("erguida");
+      const l = document.getElementById("listaContas"); if (l) l.classList.remove("ordenando");
+    }
+    setTimeout(() => { ignorarClique = false; }, 400);
+  }
+  window.addEventListener("pointermove", e => {
+    if (arraste) { if (arraste.pid == null || e.pointerId === arraste.pid) { arraste.ultY = e.clientY; } return; }
+    if (!toque || e.pointerId !== toque.id) return;
+    const dx = Math.abs(e.clientX - toque.x0), dy = Math.abs(e.clientY - toque.y0);
+    if (toque.mouse && dy > 6 && dy >= dx) { const c = toque.card, y0 = toque.y0; erguer(c, y0, false); arraste && (arraste.ultY = e.clientY); return; }
+    if (dx > TOLERA || dy > TOLERA) cancelarToque(); // dedo andou antes do tempo: é rolagem, não arraste
+  });
+  window.addEventListener("pointerup", e => { if (arraste) soltar(false); else cancelarToque(); });
+  window.addEventListener("pointercancel", () => { if (arraste) soltar(true); else cancelarToque(); });
+  window.addEventListener("scroll", () => { if (toque && !toque.mouse) cancelarToque(); }, {passive: true});
+  // Depois de erguer, o dedo não rola a página (a rolagem fica por conta das bordas).
+  window.addEventListener("touchmove", e => { if (arraste && e.cancelable) e.preventDefault(); }, {passive: false});
+  main.addEventListener("contextmenu", e => { if (e.target.closest(".list .item")) e.preventDefault(); });
+  main.addEventListener("click", e => {
+    if (ignorarClique && e.target.closest(".list")) { e.stopPropagation(); e.preventDefault(); ignorarClique = false; }
+  }, true);
+  document.addEventListener("keydown", e => { if (arraste && e.key === "Escape") soltar(true); });
+})();
 function defaultData() {
   const [y,m] = atual.split("-");
   const d = new Date().getDate();
@@ -1042,6 +1230,7 @@ async function avisoVersaoNova() {
   if (document.getElementById("dlgConf").open) return;
   avisoVersaoAberto = true;
   const escolha = await perguntar(`Anota Conta atualizado para a v${APP_VERSAO}`,
+    "Novidades: no Resumo, o gráfico Maiores pagamentos (mês ou ano). Em Este mês, segure uma conta e arraste para mudar a ordem. " +
     "Recomendamos exportar seu backup (JSON ou Excel). Se seus dados não aparecerem, importe o backup em Mais.", [
       {rotulo: "Exportar backup agora", classe: "main", valor: "json"},
       {rotulo: "Baixar Excel", classe: "ghost", valor: "excel"},

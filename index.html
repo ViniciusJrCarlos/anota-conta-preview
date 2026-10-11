@@ -32,7 +32,7 @@
       <button type="submit" id="loginBtn" class="btn main">Entrar</button>
       <p class="login-instalar" id="loginInstalarWrap"><button type="button" class="link-instalar" id="btnInstalarAppLogin">Instalar app</button></p>
       <p id="loginErro" class="login-erro" role="alert"></p>
-      <p class="login-rodape" id="loginRodape">Anota Conta v0.6 · © 2026 webdev</p>
+      <p class="login-rodape" id="loginRodape">Anota Conta v0.7 · © 2026 webdev</p>
     </form>
   </section>
 
@@ -83,6 +83,14 @@
       <label>Observação</label>
       <input id="fObs" />
       <label><input type="checkbox" id="fRepete" style="width:auto" /> Repete todo mês</label>
+      <div id="ordemBox" hidden>
+        <label>Ordem na lista</label>
+        <div class="ordem-box">
+          <button type="button" class="btn ghost" id="ordemSobe" onclick="moverNoForm(-1)" aria-label="Subir na lista">↑ Subir</button>
+          <button type="button" class="btn ghost" id="ordemDesce" onclick="moverNoForm(1)" aria-label="Descer na lista">↓ Descer</button>
+          <span id="ordemPos"></span>
+        </div>
+      </div>
       <div class="actions">
         <button type="button" class="btn ghost" onclick="dlg.close()">Cancelar</button>
         <button type="button" class="btn danger" id="btnApagar" hidden onclick="apagarItem()">Excluir</button>

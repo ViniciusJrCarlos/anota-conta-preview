@@ -227,3 +227,39 @@ body.travado .login { display: flex; }
 .ok-txt { color: var(--ok); }
 .ganual-um b { display: block; font-size: 1.4rem; }
 .ganual-um span { color: var(--muted); font-size: .82rem; }
+
+/* ---------- Maiores pagamentos (v0.7) ---------- */
+:root, [data-tema="branca"] { --d0: #f5c518; --d1: #4a5d7a; --d2: #c9a227; --d3: #8da2bb; --d4: #6b6b6b; --d5: #d6d6d6; }
+[data-tema="preta"] { --d0: #f5c518; --d1: #8fa3c4; --d2: #c9a24a; --d3: #5e7591; --d4: #bdbdbd; --d5: #4a4a4a; }
+[data-tema="luz"] { --d0: #e3ad00; --d1: #4a5d7a; --d2: #a8862a; --d3: #8da2bb; --d4: #6b5a2a; --d5: #d9cba0; }
+circle.d0 { stroke: var(--d0); } circle.d1 { stroke: var(--d1); } circle.d2 { stroke: var(--d2); }
+circle.d3 { stroke: var(--d3); } circle.d4 { stroke: var(--d4); } circle.d5 { stroke: var(--d5); }
+i.d0 { background: var(--d0); } i.d1 { background: var(--d1); } i.d2 { background: var(--d2); }
+i.d3 { background: var(--d3); } i.d4 { background: var(--d4); } i.d5 { background: var(--d5); }
+.seg { display: inline-flex; flex: 0 0 auto; border: 1px solid var(--line); border-radius: 999px; padding: 2px; background: var(--bg); }
+.seg button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: .8rem; font-weight: 700; padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+.seg button.on { background: var(--ink); color: var(--bg); }
+[data-tema="preta"] .seg button.on { background: var(--marca); color: #111; }
+.maiores { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 18px; margin-top: 6px; }
+.rosca { flex: 0 0 auto; }
+.rosca-v { fill: var(--ink); font-size: 13.5px; font-weight: 800; }
+.rosca-l { fill: var(--muted); font-size: 10px; }
+.mlista { list-style: none; margin: 0; padding: 0; flex: 1 1 240px; max-width: 460px; display: grid; gap: 7px; }
+.mlista li { display: grid; grid-template-columns: 12px 1fr auto 44px; gap: 8px; align-items: center; font-size: .84rem; }
+.mlista i { width: 12px; height: 12px; border-radius: 3px; }
+.mlista .mn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mlista b { white-space: nowrap; }
+.mlista .mp { color: var(--muted); text-align: right; font-size: .78rem; }
+.maiores-vazio { margin: 8px 0 2px; }
+
+/* ---------- Reordenar contas (v0.7): segurar e arrastar ---------- */
+.list .item { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.list.ordenando .item { transition: transform .16s ease; }
+.list.ordenando .item.erguida { transition: none; z-index: 5; position: relative; cursor: grabbing; opacity: 1;
+  box-shadow: 0 12px 28px rgba(0,0,0,.22), 0 2px 6px rgba(0,0,0,.12); border-color: var(--marca); }
+[data-tema="preta"] .list.ordenando .item.erguida { box-shadow: 0 12px 28px rgba(0,0,0,.7), 0 0 0 1px var(--marca); }
+body.arrastando { cursor: grabbing; overscroll-behavior: none; }
+.ordem-dica { margin: 10px 2px 0; font-size: .76rem; }
+.ordem-box { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.ordem-box .btn { padding: 8px 12px; }
+.ordem-box span { color: var(--muted); font-size: .82rem; }

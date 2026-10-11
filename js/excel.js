@@ -1,4 +1,4 @@
-/* Anota Conta — Baixar Excel (v0.6): aba Resumo com comparativo e gráficos + uma aba por ano.
+/* Anota Conta — Baixar Excel (v0.6, v0.7: pizza das maiores contas do ano): aba Resumo com comparativo e gráficos + uma aba por ano.
    Tema claro do app (sem fundos pretos). Usa js/xlsx.js (offline). */
 const EXCEL = (() => {
   const INK = "111111", MARCA = "F5C518", LINE = "E8E8E8", MUTED = "5C5C5C";
@@ -234,8 +234,36 @@ const EXCEL = (() => {
     if (!porCat.length) aba.set(rCab3 + 1, 2, "Sem valores neste ano.", {i: true, cor: MUTED});
     const rFim3 = rCab3 + Math.max(1, porCat.length);
 
-    // Gráficos
+    // Tabela 4 (v0.7): maiores contas do ano mais recente (contas de mesmo nome somadas) · top 5 + Outras
+    const chave = n => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+    const porNome = new Map();
+    todosPorAno[yUlt].forEach(i => {
+      const k = chave(i.nome); if (!k) return;
+      const x = porNome.get(k) || {nome: String(i.nome).trim(), v: 0};
+      x.v += Number(i.valor || 0); porNome.set(k, x);
+    });
+    const contasAno = [...porNome.values()].map(x => ({...x, v: Math.round(x.v * 100) / 100})).filter(x => x.v > 0).sort((a, b) => b.v - a.v);
+    const maiores = contasAno.slice(0, 5);
+    const restoV = Math.round(contasAno.slice(5).reduce((a, x) => a + x.v, 0) * 100) / 100;
+    if (restoV > 0) maiores.push({nome: `Outras (${contasAno.length - 5})`, v: restoV, outras: true});
     r = rFim3 + 2;
+    aba.mesclar(r, 2, r, ult);
+    aba.set(r, 2, `Maiores contas em ${yUlt}`, {b: true, sz: 11, fundo: BAND, indent: 1}); aba.estilo(r, 3, ult, {fundo: BAND}); aba.altura(r, 20);
+    const rCab4 = r + 1;
+    cabecalho(aba, rCab4, ["Conta", "Total no ano", "% do ano"]);
+    const totMaiores = maiores.reduce((a, x) => a + x.v, 0);
+    maiores.forEach((x, j) => {
+      const z = j % 2 ? {fundo: ZEBRA} : {};
+      aba.set(rCab4 + 1 + j, 2, x.nome, {b: !x.outras, i: !!x.outras, borda: BOX, indent: 1, ...z});
+      aba.set(rCab4 + 1 + j, 3, x.v, {num: BRL, h: "right", borda: BOX, ...z});
+      aba.set(rCab4 + 1 + j, 4, totMaiores ? Math.round(x.v / totMaiores * 10000) / 10000 : 0, {num: "0.0%", h: "right", borda: BOX, ...z});
+    });
+    if (!maiores.length) aba.set(rCab4 + 1, 2, "Sem valores neste ano.", {i: true, cor: MUTED});
+    const rFim4 = rCab4 + Math.max(1, maiores.length);
+    aba.set(rFim4 + 1, 2, "Contas com o mesmo nome somadas no ano. Outras = soma das demais contas.", {i: true, sz: 9, cor: MUTED});
+
+    // Gráficos
+    r = rFim4 + 3;
     aba.quebras.push(r); // gráficos começam numa página nova
     aba.mesclar(r, 2, r, ult);
     aba.set(r, 2, "Gráficos", {b: true, sz: 11, fundo: BAND, indent: 1}); aba.estilo(r, 3, ult, {fundo: BAND}); aba.altura(r, 20);
@@ -261,11 +289,20 @@ const EXCEL = (() => {
          series: [{nome: {f: abs(NOME, rCab2, colTotal), v: "Total"}, f: abs(NOME, rCab2 + 1, colTotal, rFim2, colTotal),
                    vals: anos.map(y => anual[y]), cor: MARCA, cores: coresAnos(nY)}],
          legenda: null, fmtEixo: BRL0, fmtRotulo: BRL0, rotulos: true, max: Math.ceil(maxAnual * 1.3 / passo) * passo, passo}, Math.max(4.5, 2.2 + nY * 1.1));
+    if (porCat.length || maiores.length) aba.quebras.push(linha); // as pizzas ficam juntas numa página
     if (porCat.length) {
       add({tipo: "pie", titulo: `Por categoria em ${yUlt}`,
            cats: {f: abs(NOME, rCab3 + 1, 2, rFim3, 2), vals: porCat.map(x => catNome(x.id))},
            series: [{nome: {f: abs(NOME, rCab3, 3), v: "Total"}, f: abs(NOME, rCab3 + 1, 3, rFim3, 3), vals: porCat.map(x => x.v),
                      cores: porCat.map((_, k) => PIZZA[k % PIZZA.length])}],
+           legenda: "r"}, 8.5);
+    }
+    if (maiores.length) {
+      const PIZZA_MAIORES = [MARCA, SLATE, "C9A227", "8DA2BB", "6B6B6B"];
+      add({tipo: "pie", titulo: `Maiores contas em ${yUlt}`,
+           cats: {f: abs(NOME, rCab4 + 1, 2, rFim4, 2), vals: maiores.map(x => x.nome)},
+           series: [{nome: {f: abs(NOME, rCab4, 3), v: "Total no ano"}, f: abs(NOME, rCab4 + 1, 3, rFim4, 3), vals: maiores.map(x => x.v),
+                     cores: maiores.map((x, k) => x.outras ? "D6D6D6" : PIZZA_MAIORES[k])}],
            legenda: "r"}, 8.5);
     }
     aba.ajustarAltura = 0;
