@@ -1,4 +1,4 @@
-const APP_VERSAO = "0.7";
+const APP_VERSAO = "0.8";
 const VERSAO_KEY = "anota-conta-versao-vista";
 const dlg = document.getElementById("dlg");
 let estado = carregar();
@@ -136,6 +136,7 @@ function viewResumo() {
   })).filter(x => x.v > 0).sort((a,b)=>b.v-a.v);
   const maxF = Math.max(...porForma.map(x=>x.v), 1);
   return `<h2>Resumo · ${tituloMes(atual)}</h2>
+    ${faixaAnoVisto()}
     <div class="card">
       <h3>Pago x pendente</h3>
       ${barra("Pago", pago, max)}
@@ -239,10 +240,59 @@ function larguraGrafico() {
 }
 // Cor de cada ano: o mais recente em amarelo, o anterior em azul-acinzentado, os mais antigos em cinza.
 function classeAno(i, n) { return i === n - 1 ? "g2" : i === n - 2 ? "g1" : "g0"; }
+/* ---------- Escolher ano no Resumo (v0.8) ----------
+   Tocar num ano do "Total anual" abre um mês desse ano: o mesmo número de mês, se tiver contas; senão o último
+   mês com contas do ano. O Resumo inteiro segue o mês aberto (cards do mês, rosca Mês/Ano). "Voltar pro ano atual"
+   reabre o mês que estava aberto antes de escolher o ano. Não fica salvo: ao recarregar, o Resumo é o normal. */
+let anoVisto = null, voltarPara = null;
+function anoEmVista() {
+  if (anoVisto && atual.slice(0, 4) !== anoVisto) { anoVisto = null; voltarPara = null; } // saiu do ano por outro caminho
+  return anoVisto;
+}
+function mesParaAno(y) {
+  const com = Array.from({length: 12}, (_, m) => y + "-" + String(m + 1).padStart(2, "0")).filter(k => (estado.meses[k] || []).length);
+  const mesmo = y + atual.slice(4);
+  return com.includes(mesmo) ? mesmo : com[com.length - 1] || null;
+}
+function verAno(y) {
+  y = String(y);
+  const anos = Object.keys(totaisPorAno());
+  if (anos.length < 2 || !anos.includes(y)) return;
+  if (anoEmVista() === y) return;
+  if (anoVisto && voltarPara && voltarPara.slice(0, 4) === y) { voltarAnoAtual(); return; }
+  if (!anoVisto && atual.slice(0, 4) === y) return; // já é o ano em vista
+  const k = mesParaAno(y);
+  if (!k) return;
+  if (!anoVisto) voltarPara = atual;
+  anoVisto = y; atual = k; persist(); render();
+  window.scrollTo({top: 0, behavior: "smooth"});
+  aviso(`Resumo de ${y} · ${tituloMes(k)}`);
+}
+function voltarAnoAtual() {
+  const k = voltarPara;
+  anoVisto = null; voltarPara = null;
+  if (k) atual = k;
+  persist(); render();
+  window.scrollTo({top: 0, behavior: "smooth"});
+}
+function faixaAnoVisto() {
+  const y = anoEmVista();
+  if (!y) return "";
+  return `<div class="ano-visto" role="status"><span>Vendo <b>${y}</b></span>
+    <button type="button" class="chip" onclick="voltarAnoAtual()">Voltar pro ano atual${voltarPara ? " (" + voltarPara.slice(0, 4) + ")" : ""}</button></div>`;
+}
+// Cor de cada ano: o escolhido (ou o mais recente) em amarelo, o mais recente dos outros em azul, o resto em cinza.
+function corAno(y, lista, sel) {
+  if (!sel) return classeAno(lista.indexOf(y), lista.length);
+  if (y === sel) return "g2";
+  const outros = lista.filter(x => x !== sel);
+  return y === outros[outros.length - 1] ? "g1" : "g0";
+}
+function teclaAno(e, y) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); verAno(y); } }
 function pctVar(v) {
   return (v > 0 ? "+" : "") + (v * 100).toLocaleString("pt-BR", {minimumFractionDigits: 1, maximumFractionDigits: 1}) + "%";
 }
-function svgTotalMes(anos, lista) {
+function svgTotalMes(anos, lista, sel = null) {
   const W = larguraGrafico(), H = Math.round(Math.max(170, Math.min(230, W * 0.46)));
   const padL = 40, padR = 4, padT = 10, padB = 22, n = lista.length;
   const vals = lista.flatMap(y => anos[y].meses.filter(v => v != null));
@@ -264,7 +314,7 @@ function svgTotalMes(anos, lista) {
       if (v == null) return;
       const h = Math.max(v > 0 ? 1.5 : 0, (v / topo) * alt);
       const x = x0 + (gw - inner) / 2 + k * bw;
-      g += `<rect x="${x.toFixed(1)}" y="${(padT + alt - h).toFixed(1)}" width="${Math.max(1, bw - (n > 1 ? 1 : 0)).toFixed(1)}" height="${h.toFixed(1)}" rx="2" class="${classeAno(k, n)}"><title>${MESES[m]} ${y}: ${money(v)}</title></rect>`;
+      g += `<rect x="${x.toFixed(1)}" y="${(padT + alt - h).toFixed(1)}" width="${Math.max(1, bw - (n > 1 ? 1 : 0)).toFixed(1)}" height="${h.toFixed(1)}" rx="2" class="${corAno(y, lista, sel)}"><title>${MESES[m]} ${y}: ${money(v)}</title></rect>`;
     });
     g += `<text x="${(x0 + gw / 2).toFixed(1)}" y="${H - 7}" text-anchor="middle" style="font-size:${fs}px">${MESES[m]}</text>`;
   }
@@ -276,9 +326,12 @@ function graficosResumo() {
   if (!lista.length) {
     return `<div class="card"><h3>Gráficos</h3><p class="hint" style="margin:0">Os gráficos de cada mês e de cada ano aparecem aqui quando você anotar contas.</p></div>`;
   }
-  const ult = lista.slice(-3), n = ult.length;
+  const sel = anoEmVista();
+  // o ano escolhido entra no gráfico mesmo se for mais antigo: escolhido + os 2 mais recentes
+  const ult = sel && !lista.slice(-3).includes(sel) ? [sel].concat(lista.filter(y => y !== sel).slice(-2)).sort() : lista.slice(-3);
+  const n = ult.length;
   const legenda = n > 1
-    ? `<div class="glegenda">${ult.map((y, k) => `<span><i class="${classeAno(k, n)}"></i>${y}</span>`).join("")}</div>`
+    ? `<div class="glegenda">${ult.map(y => `<span class="${y === sel ? "sel" : ""}"><i class="${corAno(y, ult, sel)}"></i>${y}</span>`).join("")}</div>`
     : "";
   const meses = y => `${anos[y].n} ${anos[y].n === 1 ? "mês com contas" : "meses com contas"}`;
   let anual;
@@ -287,18 +340,22 @@ function graficosResumo() {
     anual = `<div class="ganual-um"><b>${money(anos[y].total)}</b><span>${y} · ${meses(y)}</span></div>`;
   } else {
     const maxT = Math.max(...lista.map(y => anos[y].total), 1);
+    const emVista = sel || atual.slice(0, 4);
     anual = lista.map((y, i) => {
       const t = anos[y].total, ant = i ? anos[lista[i - 1]].total : null;
       const v = ant ? t / ant - 1 : null;
       const varTxt = v == null ? "" : `<span class="${v > 0 ? "nok-txt" : v < 0 ? "ok-txt" : ""}">${pctVar(v)} vs ${lista[i - 1]}</span> · `;
-      return `<div class="ganual"><span class="ano">${y}</span><div class="track"><i class="${classeAno(i, lista.length)}" style="width:${Math.max(1, Math.round(t / maxT * 100))}%"></i></div><b>${money(t)}</b></div>
-        <div class="ganual-sub">${varTxt}${meses(y)}</div>`;
-    }).join("") + `<p class="hint" style="margin:8px 0 0">Vermelho = gastou mais que no ano anterior; verde = gastou menos.</p>`;
+      const on = y === emVista;
+      return `<div class="ganual-linha ${on ? "sel" : ""}" data-ano="${y}" role="button" tabindex="0" aria-pressed="${on}"
+          aria-label="Ver o Resumo de ${y}: ${money(t)}" onclick="verAno('${y}')" onkeydown="teclaAno(event, '${y}')">
+        <div class="ganual"><span class="ano">${y}</span><div class="track"><i class="${corAno(y, lista, sel)}" style="width:${Math.max(1, Math.round(t / maxT * 100))}%"></i></div><b>${money(t)}</b></div>
+        <div class="ganual-sub">${varTxt}${meses(y)}</div></div>`;
+    }).join("") + `<p class="hint" style="margin:8px 0 0">Toque num ano para ver o Resumo dele. Vermelho = gastou mais que no ano anterior; verde = gastou menos.</p>`;
   }
   return `<div class="card graf">
       <h3>Total por mês</h3>
-      <p class="hint" style="margin:-4px 0 6px">${n > 1 ? ult.join(" x ") + (lista.length > 3 ? " (últimos 3 anos)" : "") : ult[0]}</p>
-      ${svgTotalMes(anos, ult)}
+      <p class="hint" style="margin:-4px 0 6px">${n > 1 ? ult.join(" x ") + (sel ? ` · destaque ${sel}` : lista.length > 3 ? " (últimos 3 anos)" : "") : ult[0]}</p>
+      ${svgTotalMes(anos, ult, sel)}
       ${legenda}
     </div>
     <div class="card graf">
@@ -1230,7 +1287,7 @@ async function avisoVersaoNova() {
   if (document.getElementById("dlgConf").open) return;
   avisoVersaoAberto = true;
   const escolha = await perguntar(`Anota Conta atualizado para a v${APP_VERSAO}`,
-    "Novidades: no Resumo, o gráfico Maiores pagamentos (mês ou ano). Em Este mês, segure uma conta e arraste para mudar a ordem. " +
+    "Novidade: no Resumo, toque num ano do Total anual para ver as contas daquele ano (por exemplo 2023). Para voltar, toque em Voltar pro ano atual. " +
     "Recomendamos exportar seu backup (JSON ou Excel). Se seus dados não aparecerem, importe o backup em Mais.", [
       {rotulo: "Exportar backup agora", classe: "main", valor: "json"},
       {rotulo: "Baixar Excel", classe: "ghost", valor: "excel"},

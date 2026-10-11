@@ -263,3 +263,18 @@ body.arrastando { cursor: grabbing; overscroll-behavior: none; }
 .ordem-box { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .ordem-box .btn { padding: 8px 12px; }
 .ordem-box span { color: var(--muted); font-size: .82rem; }
+
+/* ---------- Escolher ano no Resumo (v0.8) ---------- */
+.ganual-linha { border-radius: 12px; padding: 2px 8px 6px; margin: 4px -8px 0; cursor: pointer; border: 1px solid transparent;
+  -webkit-tap-highlight-color: transparent; transition: background .12s ease, border-color .12s ease; }
+.ganual-linha:hover { background: var(--bg); border-color: var(--line); }
+.ganual-linha:focus-visible { outline: 2px solid var(--marca); outline-offset: 1px; }
+.ganual-linha.sel { background: var(--wait-bg); border-color: var(--marca); }
+.ganual-linha.sel .ano { color: var(--ink); }
+.ganual-linha.sel .ano::after { content: " ●"; color: var(--marca); font-size: .7em; vertical-align: middle; }
+.ganual-linha .ganual { margin-top: 6px; }
+.ano-visto { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  background: var(--wait-bg); border: 1px solid var(--marca); border-radius: 14px; padding: 8px 10px 8px 14px; margin: 0 0 10px; }
+.ano-visto span { font-size: .9rem; }
+.ano-visto .chip { padding: 6px 12px; font-size: .82rem; font-weight: 700; }
+.glegenda span.sel { color: var(--ink); font-weight: 750; }
