@@ -1,4 +1,4 @@
-const APP_VERSAO = "0.8";
+const APP_VERSAO = "0.9";
 const VERSAO_KEY = "anota-conta-versao-vista";
 const dlg = document.getElementById("dlg");
 let estado = carregar();
