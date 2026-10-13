@@ -2,6 +2,7 @@
 <html lang="pt-BR" data-tema="branca">
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#111111" />
   <meta name="description" content="Anota Conta: caderno digital para lembrar o que vence e agradecer por poder pagar." />
@@ -26,7 +27,7 @@
         <label for="loginSenha">Senha</label>
         <div class="senha-campo">
           <input id="loginSenha" type="password" placeholder="Senha de acesso" autocomplete="current-password" />
-          <button type="button" class="olho" aria-label="Mostrar senha" data-alvo="loginSenha" onclick="alternarOlho(this)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          <button type="button" class="olho" aria-label="Mostrar senha" data-alvo="loginSenha" data-act="olho"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
       </div>
       <button type="submit" id="loginBtn" class="btn main">Entrar</button>
@@ -49,16 +50,16 @@
     </header>
     <main id="main"></main>
   </div>
-  <button class="fab" id="fab" onclick="abrirForm()">+</button>
+  <button class="fab" id="fab" data-act="abrirForm">+</button>
   <nav class="tab">
-    <button class="on" id="tMes" onclick="ir('mes')">Este mês</button>
-    <button id="tMeses" onclick="ir('meses')">Meses</button>
-    <button id="tResumo" onclick="ir('resumo')">Resumo</button>
-    <button id="tMais" onclick="ir('mais')">Mais</button>
+    <button class="on" id="tMes" data-act="ir" data-v="mes">Este mês</button>
+    <button id="tMeses" data-act="ir" data-v="meses">Meses</button>
+    <button id="tResumo" data-act="ir" data-v="resumo">Resumo</button>
+    <button id="tMais" data-act="ir" data-v="mais">Mais</button>
   </nav>
 
   <dialog id="dlg">
-    <form class="sheet" onsubmit="salvarItem(event)">
+    <form class="sheet" data-submit="salvarItem">
       <h2 id="formTitulo">Nova conta</h2>
       <label>Nome</label>
       <input id="fNome" required placeholder="Luz, Cinema, Feira…" />
@@ -86,14 +87,14 @@
       <div id="ordemBox" hidden>
         <label>Ordem na lista</label>
         <div class="ordem-box">
-          <button type="button" class="btn ghost" id="ordemSobe" onclick="moverNoForm(-1)" aria-label="Subir na lista">↑ Subir</button>
-          <button type="button" class="btn ghost" id="ordemDesce" onclick="moverNoForm(1)" aria-label="Descer na lista">↓ Descer</button>
+          <button type="button" class="btn ghost" id="ordemSobe" data-act="mover" data-v="-1" aria-label="Subir na lista">↑ Subir</button>
+          <button type="button" class="btn ghost" id="ordemDesce" data-act="mover" data-v="1" aria-label="Descer na lista">↓ Descer</button>
           <span id="ordemPos"></span>
         </div>
       </div>
       <div class="actions">
-        <button type="button" class="btn ghost" onclick="dlg.close()">Cancelar</button>
-        <button type="button" class="btn danger" id="btnApagar" hidden onclick="apagarItem()">Excluir</button>
+        <button type="button" class="btn ghost" data-act="fechar" data-v="dlg">Cancelar</button>
+        <button type="button" class="btn danger" id="btnApagar" hidden data-act="apagarItem">Excluir</button>
         <button class="btn main">Salvar</button>
       </div>
     </form>
@@ -106,7 +107,7 @@
     </div>
   </dialog>
   <dialog id="dlgCat">
-    <form class="sheet" onsubmit="criarCategoria(event)">
+    <form class="sheet" data-submit="criarCategoria">
       <h2>Categoria</h2>
       <label>Já usadas</label>
       <div class="tipos" id="jaUsadasBox"></div>
@@ -117,32 +118,32 @@
       </div>
       <p class="hint cat-aviso nok-txt" id="catErro" hidden></p>
       <div class="actions">
-        <button type="button" class="btn ghost" onclick="dlgCat.close()">Cancelar</button>
+        <button type="button" class="btn ghost" data-act="fechar" data-v="dlgCat">Cancelar</button>
       </div>
     </form>
   </dialog>
   <dialog id="dlgSenha">
-    <form class="sheet" onsubmit="salvarTrocaSenha(event)" novalidate>
+    <form class="sheet" data-submit="salvarTrocaSenha" novalidate>
       <h2>Trocar senha</h2>
       <label for="fSenhaAtual">Senha atual</label>
       <div class="senha-campo">
         <input id="fSenhaAtual" type="password" autocomplete="current-password" required />
-        <button type="button" class="olho" aria-label="Mostrar senha" data-alvo="fSenhaAtual" onclick="alternarOlho(this)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <button type="button" class="olho" aria-label="Mostrar senha" data-alvo="fSenhaAtual" data-act="olho"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
       </div>
       <label for="fSenhaNova">Nova senha</label>
       <div class="senha-campo">
         <input id="fSenhaNova" type="password" minlength="8" placeholder="Nova senha" autocomplete="new-password" required />
-        <button type="button" class="olho" aria-label="Mostrar senha" data-alvo="fSenhaNova" onclick="alternarOlho(this)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <button type="button" class="olho" aria-label="Mostrar senha" data-alvo="fSenhaNova" data-act="olho"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
       </div>
       <label for="fSenhaNova2">Confirmar nova senha</label>
       <div class="senha-campo">
         <input id="fSenhaNova2" type="password" minlength="8" placeholder="Repita a nova senha" autocomplete="new-password" required />
-        <button type="button" class="olho" aria-label="Mostrar senha" data-alvo="fSenhaNova2" onclick="alternarOlho(this)"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <button type="button" class="olho" aria-label="Mostrar senha" data-alvo="fSenhaNova2" data-act="olho"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
       </div>
       <p class="hint" id="senhaRegras">A nova senha precisa ter: no mínimo 8 caracteres, 1 letra maiúscula, 1 número e 1 caractere especial.</p>
       <p class="hint cat-aviso nok-txt" id="senhaErro" hidden></p>
       <div class="actions">
-        <button type="button" class="btn ghost" onclick="dlgSenha.close()">Cancelar</button>
+        <button type="button" class="btn ghost" data-act="fechar" data-v="dlgSenha">Cancelar</button>
         <button class="btn main">Salvar</button>
       </div>
     </form>
@@ -195,8 +196,8 @@
   </dialog>
   <div class="selbar" id="selbar" hidden>
     <span class="selbar-n" id="selN">0 selecionados</span>
-    <button type="button" class="btn ghost" onclick="sairSelecao()">Cancelar</button>
-    <button type="button" class="btn danger" id="selExcluir" onclick="excluirSelecionados()">Excluir</button>
+    <button type="button" class="btn ghost" data-act="sairSelecao">Cancelar</button>
+    <button type="button" class="btn danger" id="selExcluir" data-act="excluirSelecionados">Excluir</button>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <input type="file" id="fileIn" accept="application/json,.json" hidden />

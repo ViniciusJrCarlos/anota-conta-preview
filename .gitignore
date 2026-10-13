@@ -1,0 +1,13 @@
+# Backups e dados pessoais nunca vão pro git
+*.json
+!manifest.json
+*.xlsx
+*.csv
+.env
+.env.*
+*.pem
+*.key
+node_modules/
+.venv*/
+.DS_Store
+Thumbs.db

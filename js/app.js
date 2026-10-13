@@ -75,8 +75,8 @@ function viewMes() {
     const [lb, cls] = badge(it.status);
     const bits = [catNome(it.tipo), it.forma, it.data ? fmtData(it.data) : "", it.repete ? "repete" : "", it.obs].filter(Boolean);
     return `<article class="item ${it.status==="pago"?"pago":""}" data-idx="${real}">
-      <button class="check" onclick="toggle(${real})"></button>
-      <div onclick="abrirForm(${real})">
+      <button class="check" data-act="toggle" data-v="${real}"></button>
+      <div data-act="abrirForm" data-v="${real}">
         <div class="name">${esc(it.nome)}</div>
         <div class="meta">${esc(bits.join(" · "))}</div>
         <span class="badge ${cls}">${lb}</span>
@@ -86,17 +86,17 @@ function viewMes() {
   }).join("") : `<div class="empty">${items.length ? "Nada neste filtro." : "Nenhuma conta neste mês."}<br>Toque em + para anotar.</div>`;
   return `<p class="frase">Lembre o que vence. Agradeça por poder pagar.</p>
     <div class="month">
-      <button class="nav-btn" onclick="shift(-1)">‹</button>
+      <button class="nav-btn" data-act="shift" data-v="-1">‹</button>
       <h1>${tituloMes(atual)}</h1>
-      <button class="nav-btn" onclick="shift(1)">›</button>
+      <button class="nav-btn" data-act="shift" data-v="1">›</button>
     </div>
     <div class="stats">
       ${usadas.map(c => `<div class="stat"><b>${money(somaTipo(c.id))}</b><span>${esc(c.nome)}</span><i></i></div>`).join("")}
       <div class="stat total"><b>${money(totalMes)}</b><span>Total do mês</span><i></i></div>
     </div>
     <div class="chips">
-      <button class="chip ${filtro==="todas"?"on":""}" onclick="filtro='todas';render()">Todas</button>
-      ${usadas.map(c => `<button class="chip ${filtro===c.id?"on":""}" onclick="filtro='${esc(c.id)}';render()">${esc(c.nome)}</button>`).join("")}
+      <button class="chip ${filtro==="todas"?"on":""}" data-act="filtro" data-v="todas">Todas</button>
+      ${usadas.map(c => `<button class="chip ${filtro===c.id?"on":""}" data-act="filtro" data-v="${esc(c.id)}">${esc(c.nome)}</button>`).join("")}
     </div>
     <div class="list" id="listaContas">${htmlItems}</div>
     ${vis.length > 1 ? `<p class="hint ordem-dica">Segure uma conta e arraste para mudar a ordem.</p>` : ""}`;
@@ -191,8 +191,8 @@ function cardMaiores() {
   const resto = Math.round(todas.slice(5).reduce((a, x) => a + x.v, 0) * 100) / 100;
   const fatias = top.concat(resto > 0 ? [{nome: `Outras (${todas.length - 5})`, v: resto, outras: true}] : []);
   const seg = `<div class="seg" role="group" aria-label="Período do gráfico">
-      <button type="button" class="${noMes ? "on" : ""}" aria-pressed="${noMes}" onclick="maioresModo='mes';render()">Mês</button>
-      <button type="button" class="${noMes ? "" : "on"}" aria-pressed="${!noMes}" onclick="maioresModo='ano';render()">Ano</button></div>`;
+      <button type="button" class="${noMes ? "on" : ""}" aria-pressed="${noMes}" data-act="maiores" data-v="mes">Mês</button>
+      <button type="button" class="${noMes ? "" : "on"}" aria-pressed="${!noMes}" data-act="maiores" data-v="ano">Ano</button></div>`;
   const comDados = mesesDoAno(ano).map((a, m) => a.length ? m : -1).filter(m => m >= 0);
   const faixa = comDados.length ? MESES[comDados[0]] + (comDados.length > 1 ? "–" + MESES[comDados[comDados.length - 1]] : "") : "";
   const sub = noMes
@@ -279,7 +279,7 @@ function faixaAnoVisto() {
   const y = anoEmVista();
   if (!y) return "";
   return `<div class="ano-visto" role="status"><span>Vendo <b>${y}</b></span>
-    <button type="button" class="chip" onclick="voltarAnoAtual()">Voltar pro ano atual${voltarPara ? " (" + voltarPara.slice(0, 4) + ")" : ""}</button></div>`;
+    <button type="button" class="chip" data-act="voltarAnoAtual">Voltar pro ano atual${voltarPara ? " (" + voltarPara.slice(0, 4) + ")" : ""}</button></div>`;
 }
 // Cor de cada ano: o escolhido (ou o mais recente) em amarelo, o mais recente dos outros em azul, o resto em cinza.
 function corAno(y, lista, sel) {
@@ -347,7 +347,7 @@ function graficosResumo() {
       const varTxt = v == null ? "" : `<span class="${v > 0 ? "nok-txt" : v < 0 ? "ok-txt" : ""}">${pctVar(v)} vs ${lista[i - 1]}</span> · `;
       const on = y === emVista;
       return `<div class="ganual-linha ${on ? "sel" : ""}" data-ano="${y}" role="button" tabindex="0" aria-pressed="${on}"
-          aria-label="Ver o Resumo de ${y}: ${money(t)}" onclick="verAno('${y}')" onkeydown="teclaAno(event, '${y}')">
+          aria-label="Ver o Resumo de ${y}: ${money(t)}" data-act="verAno" data-v="${y}">
         <div class="ganual"><span class="ano">${y}</span><div class="track"><i class="${corAno(y, lista, sel)}" style="width:${Math.max(1, Math.round(t / maxT * 100))}%"></i></div><b>${money(t)}</b></div>
         <div class="ganual-sub">${varTxt}${meses(y)}</div></div>`;
     }).join("") + `<p class="hint" style="margin:8px 0 0">Toque num ano para ver o Resumo dele. Vermelho = gastou mais que no ano anterior; verde = gastou menos.</p>`;
@@ -379,19 +379,19 @@ function viewMais() {
   return `<h2>Aparência</h2>
     ${[["branca","Branca padrão"],["preta","Preta noturna"],["luz","Amarelo-luz"]].map(([k,l]) =>
       `<button class="card" style="width:100%;text-align:left;cursor:pointer;border-color:${t===k?"var(--marca)":"var(--line)"}"
-        onclick="estado.tema='${k}';persist();render()"><strong>${l}</strong>${t===k?" · em uso":""}</button>`).join("")}
+        data-act="tema" data-v="${k}"><strong>${l}</strong>${t===k?" · em uso":""}</button>`).join("")}
     <h2 style="margin-top:22px">Seus dados</h2>
-    <button class="card" style="width:100%;text-align:left" onclick="exportarExcel()"><strong>Baixar Excel</strong><div class="meta">Todos os anos: resumo com gráficos e uma aba por ano, mês a mês</div></button>
-    <button class="card" style="width:100%;text-align:left" onclick="exportarBackup()"><strong>Exportar backup</strong><div class="meta">Baixa um arquivo .json com todos os meses, contas e categorias</div></button>
-    <button class="card" style="width:100%;text-align:left" onclick="document.getElementById('fileIn').click()"><strong>Importar backup</strong><div class="meta">Carrega um arquivo .json exportado pelo Anota Conta</div></button>
-    <button class="card" style="width:100%;text-align:left" onclick="abrirImportarExcel()"><strong>Importar planilha (Excel)</strong><div class="meta">Carrega um .xlsx do Baixar Excel (uma aba por ano) ou com uma aba por mês (JAN a DEZ)</div></button>
-    <button class="card" style="width:100%;text-align:left" onclick="copiarProx()">Copiar mês para o próximo</button>
+    <button class="card" style="width:100%;text-align:left" data-act="exportarExcel"><strong>Baixar Excel</strong><div class="meta">Todos os anos: resumo com gráficos e uma aba por ano, mês a mês</div></button>
+    <button class="card" style="width:100%;text-align:left" data-act="exportarBackup"><strong>Exportar backup</strong><div class="meta">Baixa um arquivo .json com todos os meses, contas e categorias</div></button>
+    <button class="card" style="width:100%;text-align:left" data-act="importarBackup"><strong>Importar backup</strong><div class="meta">Carrega um arquivo .json exportado pelo Anota Conta</div></button>
+    <button class="card" style="width:100%;text-align:left" data-act="abrirImportarExcel"><strong>Importar planilha (Excel)</strong><div class="meta">Carrega um .xlsx do Baixar Excel (uma aba por ano) ou com uma aba por mês (JAN a DEZ)</div></button>
+    <button class="card" style="width:100%;text-align:left" data-act="copiarProx">Copiar mês para o próximo</button>
     <div class="warn">O Excel traz um resumo com gráficos e uma aba por ano, com todos os meses, e pode ser importado de volta. O backup é o arquivo para guardar no Drive, no e-mail ou no WhatsApp e passar os dados para outro aparelho. Tudo continua neste aparelho.</div>
     ${appJaInstalado() ? "" : `<h2 style="margin-top:22px">App</h2>
-    <button class="card" id="maisInstalar" style="width:100%;text-align:left" onclick="abrirInstalar()"><strong>Instalar app</strong><div class="meta">Coloca o Anota Conta na tela inicial ou na área de trabalho e usa offline</div></button>`}
+    <button class="card" id="maisInstalar" style="width:100%;text-align:left" data-act="abrirInstalar"><strong>Instalar app</strong><div class="meta">Coloca o Anota Conta na tela inicial ou na área de trabalho e usa offline</div></button>`}
     <h2 style="margin-top:22px">Acesso</h2>
-    <button class="card" style="width:100%;text-align:left" onclick="abrirTrocaSenha()"><strong>Trocar senha</strong><div class="meta">Altera a senha salva neste aparelho</div></button>
-    <button class="card" style="width:100%;text-align:left" onclick="sairApp()"><strong>Sair</strong><div class="meta">Bloqueia o app até digitar a senha de novo</div></button>
+    <button class="card" style="width:100%;text-align:left" data-act="abrirTrocaSenha"><strong>Trocar senha</strong><div class="meta">Altera a senha salva neste aparelho</div></button>
+    <button class="card" style="width:100%;text-align:left" data-act="sairApp"><strong>Sair</strong><div class="meta">Bloqueia o app até digitar a senha de novo</div></button>
     <p class="hint" style="margin-top:18px;text-align:center;line-height:1.5"><strong>Anota Conta</strong><br>Versão ${APP_VERSAO}<br>© ${new Date().getFullYear()} webdev. Todos os direitos reservados.</p>`;
 }
 function pintarchips(boxId, opcoes, campo) {
@@ -400,8 +400,8 @@ function pintarchips(boxId, opcoes, campo) {
     const id = o.id || o;
     const nome = o.nome || o;
     const on = (campo==="tipo" ? tipoSel : formaSel) === id ? "on" : "";
-    return `<div class="tipo ${on}" data-id="${esc(id)}" onclick="pick('${campo}','${esc(id)}', this)">${esc(nome)}</div>`;
-  }).join("") + (campo === "tipo" ? `<div class="tipo add" id="btnCatMais" onclick="abrirCategorias()">+ Categoria</div>` : "");
+    return `<div class="tipo ${on}" data-id="${esc(id)}" data-act="pick" data-campo="${campo}" data-v="${esc(id)}">${esc(nome)}</div>`;
+  }).join("") + (campo === "tipo" ? `<div class="tipo add" id="btnCatMais" data-act="abrirCategorias">+ Categoria</div>` : "");
 }
 function pick(campo, id, el) {
   if (campo === "tipo") tipoSel = id;
@@ -439,7 +439,7 @@ function abrirCategorias() {
   const outras = cats().filter(c => !ids.has(c.id));
   const box = document.getElementById("jaUsadasBox");
   box.innerHTML = outras.length
-    ? outras.map(c => `<div class="tipo" data-id="${esc(c.id)}" onclick="usarCategoria('${esc(c.id)}')">${esc(c.nome)}</div>`).join("")
+    ? outras.map(c => `<div class="tipo" data-id="${esc(c.id)}" data-act="usarCat" data-v="${esc(c.id)}">${esc(c.nome)}</div>`).join("")
     : `<p class="hint" style="margin:0">Nenhuma outra categoria ainda. Crie uma abaixo.</p>`;
   document.getElementById("fCatNome").value = "";
   document.getElementById("catErro").hidden = true;
@@ -1499,3 +1499,45 @@ aplicarTema(estado);
 atualizarLoginRodape();
 if (sessaoAberta()) desbloquearApp();
 else bloquearApp();
+
+/* Ações dos botões sem handlers inline (permite CSP estrita, sem 'unsafe-inline' em scripts). */
+(function ligarAcoes() {
+  const dialogos = { dlg: () => dlg, dlgCat: () => dlgCat, dlgSenha: () => dlgSenha };
+  const acoes = {
+    olho: el => alternarOlho(el),
+    abrirForm: el => el.dataset.v === undefined ? abrirForm() : abrirForm(Number(el.dataset.v)),
+    ir: el => ir(el.dataset.v),
+    mover: el => moverNoForm(Number(el.dataset.v)),
+    fechar: el => { const d = dialogos[el.dataset.v]; if (d) d().close(); },
+    toggle: el => toggle(Number(el.dataset.v)),
+    shift: el => shift(Number(el.dataset.v)),
+    filtro: el => { filtro = el.dataset.v; render(); },
+    maiores: el => { maioresModo = el.dataset.v === "ano" ? "ano" : "mes"; render(); },
+    verAno: el => verAno(el.dataset.v),
+    tema: el => { estado.tema = el.dataset.v; persist(); render(); },
+    importarBackup: () => document.getElementById("fileIn").click(),
+    pick: el => pick(el.dataset.campo, el.dataset.v, el),
+    usarCat: el => usarCategoria(el.dataset.v),
+    apagarItem: () => apagarItem(), sairSelecao: () => sairSelecao(),
+    excluirSelecionados: () => excluirSelecionados(), abrirCategorias: () => abrirCategorias(),
+    voltarAnoAtual: () => voltarAnoAtual(), exportarExcel: () => exportarExcel(),
+    exportarBackup: () => exportarBackup(), abrirImportarExcel: () => abrirImportarExcel(),
+    copiarProx: () => copiarProx(), abrirInstalar: () => abrirInstalar(),
+    abrirTrocaSenha: () => abrirTrocaSenha(), sairApp: () => sairApp()
+  };
+  document.addEventListener("click", e => {
+    const el = e.target.closest("[data-act]");
+    if (!el || el.disabled) return;
+    const f = acoes[el.dataset.act];
+    if (f) f(el, e);
+  });
+  document.addEventListener("keydown", e => {
+    const el = e.target.closest && e.target.closest('[data-act="verAno"]');
+    if (el) teclaAno(e, el.dataset.v);
+  });
+  const envios = { salvarItem: e => salvarItem(e), criarCategoria: e => criarCategoria(e), salvarTrocaSenha: e => salvarTrocaSenha(e) };
+  document.addEventListener("submit", e => {
+    const f = envios[e.target.dataset && e.target.dataset.submit];
+    if (f) f(e);
+  });
+})();
