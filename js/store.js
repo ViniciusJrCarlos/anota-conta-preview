@@ -1,6 +1,6 @@
 const KEY = "anota-conta-v02-preview-2023g";
 // true: começa com os meses de exemplo (preview). false: começa vazio, no mês atual, só com Fixos e Básicos.
-const USAR_EXEMPLO = true;
+const USAR_EXEMPLO = false;
 const KEY_V01 = "anota-conta-v01";
 const MESES = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 const FORMAS = ["Pix","Débito","Crédito","Dinheiro","Outro"];
