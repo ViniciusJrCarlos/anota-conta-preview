@@ -1,4 +1,4 @@
-const CACHE = "anota-conta-v09-preview-1";
+const CACHE = "anota-conta-v09-preview-2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -10,7 +10,8 @@ const ASSETS = [
   "./js/excel.js",
   "./js/app.js",
   "./manifest.webmanifest",
-  "./icons/icon.svg"
+  "./icons/icon.svg",
+  "./video/tutorial.mp4"
 ];
 
 self.addEventListener("install", e => {

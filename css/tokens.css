@@ -278,3 +278,9 @@ body.arrastando { cursor: grabbing; overscroll-behavior: none; }
 .ano-visto span { font-size: .9rem; }
 .ano-visto .chip { padding: 6px 12px; font-size: .82rem; font-weight: 700; }
 .glegenda span.sel { color: var(--ink); font-weight: 750; }
+
+/* ---------- Tutorial em vídeo (primeira visita) ---------- */
+.tutorial { position: fixed; inset: 0; z-index: 100; background: #111; display: flex; align-items: center; justify-content: center; }
+.tutorial[hidden] { display: none; }
+.tutorial video { width: 100%; height: 100%; object-fit: contain; }
+.tutorial-pular { position: absolute; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); width: auto; padding: 10px 22px; }

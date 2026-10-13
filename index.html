@@ -2,7 +2,7 @@
 <html lang="pt-BR" data-tema="branca">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; media-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#111111" />
   <meta name="description" content="Anota Conta: caderno digital para lembrar o que vence e agradecer por poder pagar." />
@@ -12,6 +12,10 @@
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
 </head>
 <body class="travado">
+  <div id="tutorial" class="tutorial" role="dialog" aria-label="Tutorial em vídeo" hidden>
+    <video id="tutorialVideo" muted playsinline preload="none"></video>
+    <button type="button" class="btn main tutorial-pular" data-act="fecharTutorial">Pular</button>
+  </div>
   <section id="login" class="login" aria-label="Tela de acesso">
     <form id="loginForm" class="login-box" autocomplete="off" novalidate>
       <div class="login-brand">

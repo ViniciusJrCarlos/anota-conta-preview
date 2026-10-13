@@ -1,5 +1,6 @@
 const APP_VERSAO = "0.9";
 const VERSAO_KEY = "anota-conta-versao-vista";
+const TUTORIAL_KEY = "anota-conta-tutorial-visto";
 const dlg = document.getElementById("dlg");
 let estado = carregar();
 let atual = estado.mesAtual || mesHoje();
@@ -389,6 +390,7 @@ function viewMais() {
     <div class="warn">O Excel traz um resumo com gráficos e uma aba por ano, com todos os meses, e pode ser importado de volta. O backup é o arquivo para guardar no Drive, no e-mail ou no WhatsApp e passar os dados para outro aparelho. Tudo continua neste aparelho.</div>
     ${appJaInstalado() ? "" : `<h2 style="margin-top:22px">App</h2>
     <button class="card" id="maisInstalar" style="width:100%;text-align:left" data-act="abrirInstalar"><strong>Instalar app</strong><div class="meta">Coloca o Anota Conta na tela inicial ou na área de trabalho e usa offline</div></button>`}
+    <button class="card" style="width:100%;text-align:left" data-act="abrirTutorial"><strong>Ver tutorial</strong><div class="meta">Vídeo curto mostrando como usar o app</div></button>
     <h2 style="margin-top:22px">Acesso</h2>
     <button class="card" style="width:100%;text-align:left" data-act="abrirTrocaSenha"><strong>Trocar senha</strong><div class="meta">Altera a senha salva neste aparelho</div></button>
     <button class="card" style="width:100%;text-align:left" data-act="sairApp"><strong>Sair</strong><div class="meta">Bloqueia o app até digitar a senha de novo</div></button>
@@ -1523,7 +1525,8 @@ else bloquearApp();
     voltarAnoAtual: () => voltarAnoAtual(), exportarExcel: () => exportarExcel(),
     exportarBackup: () => exportarBackup(), abrirImportarExcel: () => abrirImportarExcel(),
     copiarProx: () => copiarProx(), abrirInstalar: () => abrirInstalar(),
-    abrirTrocaSenha: () => abrirTrocaSenha(), sairApp: () => sairApp()
+    abrirTrocaSenha: () => abrirTrocaSenha(), sairApp: () => sairApp(),
+    abrirTutorial: () => abrirTutorial(), fecharTutorial: () => fecharTutorial()
   };
   document.addEventListener("click", e => {
     const el = e.target.closest("[data-act]");
@@ -1541,3 +1544,22 @@ else bloquearApp();
     if (f) f(e);
   });
 })();
+
+/* ---------- Tutorial em vídeo: abre sozinho só na primeira visita; depois, em Mais > Ver tutorial ---------- */
+function abrirTutorial() {
+  const box = document.getElementById("tutorial"), v = document.getElementById("tutorialVideo");
+  if (!v.getAttribute("src")) v.src = "video/tutorial.mp4";
+  v.currentTime = 0;
+  box.hidden = false;
+  const p = v.play();
+  if (p && p.catch) p.catch(() => {});
+}
+function fecharTutorial() {
+  const box = document.getElementById("tutorial");
+  if (box.hidden) return;
+  document.getElementById("tutorialVideo").pause();
+  box.hidden = true;
+  try { localStorage.setItem(TUTORIAL_KEY, "1"); } catch (_) {}
+}
+document.getElementById("tutorialVideo").addEventListener("ended", fecharTutorial);
+try { if (!localStorage.getItem(TUTORIAL_KEY)) abrirTutorial(); } catch (_) {}
