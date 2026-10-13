@@ -280,7 +280,12 @@ body.arrastando { cursor: grabbing; overscroll-behavior: none; }
 .glegenda span.sel { color: var(--ink); font-weight: 750; }
 
 /* ---------- Tutorial em vídeo (primeira visita) ---------- */
-.tutorial { position: fixed; inset: 0; z-index: 100; background: #111; display: flex; align-items: center; justify-content: center; }
+.tutorial { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.72); display: flex; align-items: center; justify-content: center; padding: 16px; }
 .tutorial[hidden] { display: none; }
-.tutorial video { width: 100%; height: 100%; object-fit: contain; }
-.tutorial-pular { position: absolute; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); width: auto; padding: 10px 22px; }
+.tutorial-card { position: relative; width: min(80vmin, 360px); background: #111; border-radius: 16px; padding: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.6); display: flex; flex-direction: column; gap: 10px; }
+.tutorial video { width: 100%; aspect-ratio: 1 / 1; object-fit: contain; background: #000; border-radius: 10px; display: block; }
+.tutorial-x { position: absolute; top: -12px; right: -12px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: #fff; color: #111; font-size: 22px; line-height: 1; cursor: pointer; z-index: 1; }
+.tutorial-pular { width: 100%; padding: 10px; }
+.login-tutorial { text-align: center; margin: 8px 0 0; }
+.link-tutorial { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; color: inherit; opacity: .85; font: inherit; font-size: 14px; cursor: pointer; text-decoration: underline; }
+.link-tutorial:hover { opacity: 1; color: var(--marca); }
