@@ -1,4 +1,4 @@
-const APP_VERSAO = "0.9";
+const APP_VERSAO = "0.10";
 const VERSAO_KEY = "anota-conta-versao-vista";
 const TUTORIAL_KEY = "anota-conta-tutorial-visto";
 const dlg = document.getElementById("dlg");
