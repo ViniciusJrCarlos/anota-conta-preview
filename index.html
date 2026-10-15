@@ -45,7 +45,7 @@
       <p class="login-instalar" id="loginInstalarWrap"><button type="button" class="link-instalar" id="btnInstalarAppLogin">Instalar app</button></p>
       <p class="login-tutorial"><button type="button" class="link-tutorial" data-act="abrirTutorial"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M10 8l6 4-6 4z" fill="currentColor"/></svg> Ver tutorial</button></p>
       <p id="loginErro" class="login-erro" role="alert"></p>
-      <p class="login-rodape" id="loginRodape">Anota Conta v0.10 · © 2026 webdev</p>
+      <p class="login-rodape" id="loginRodape">Anota Conta v0.11 · © 2026 webdev</p>
     </form>
   </section>
 
@@ -136,7 +136,8 @@
   </dialog>
   <dialog id="dlgSenha">
     <form class="sheet" data-submit="salvarTrocaSenha" novalidate>
-      <h2>Trocar senha</h2>
+      <h2 id="senhaTitulo">Trocar senha</h2>
+      <p class="hint" id="senhaIntro" hidden>Por segurança, troque a senha padrão por uma senha sua para usar o app.</p>
       <label for="fSenhaAtual">Senha atual</label>
       <div class="senha-campo">
         <input id="fSenhaAtual" type="password" autocomplete="current-password" required />
@@ -153,9 +154,10 @@
         <button type="button" class="olho" aria-label="Mostrar senha" data-alvo="fSenhaNova2" data-act="olho"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
       </div>
       <p class="hint" id="senhaRegras">A nova senha precisa ter: no mínimo 8 caracteres, 1 letra maiúscula, 1 número e 1 caractere especial.</p>
+      <p class="hint" id="senhaAviso">Atenção: não há como recuperar uma senha esquecida. Faça antes um backup em JSON (Mais › Exportar backup).</p>
       <p class="hint cat-aviso nok-txt" id="senhaErro" hidden></p>
       <div class="actions">
-        <button type="button" class="btn ghost" data-act="fechar" data-v="dlgSenha">Cancelar</button>
+        <button type="button" class="btn ghost" id="senhaCancelar" data-act="cancelarSenha">Cancelar</button>
         <button class="btn main">Salvar</button>
       </div>
     </form>

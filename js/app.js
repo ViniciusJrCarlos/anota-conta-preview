@@ -1,4 +1,4 @@
-const APP_VERSAO = "0.10";
+const APP_VERSAO = "0.11";
 const VERSAO_KEY = "anota-conta-versao-vista";
 const TUTORIAL_KEY = "anota-conta-tutorial-visto";
 const dlg = document.getElementById("dlg");
@@ -1272,7 +1272,21 @@ function bloquearApp() {
 function desbloquearApp() {
   document.body.classList.remove("travado");
   ir("mes");
+  if (usandoSenhaPadrao()) { exigirTrocaSenha(); return; }
   setTimeout(avisoVersaoNova, 60);
+}
+
+/* Primeiro acesso: enquanto só existir a senha padrão, o app fica bloqueado até criar uma senha própria. */
+let trocaObrigatoria = false;
+function exigirTrocaSenha() {
+  abrirTrocaSenha(true);
+}
+function cancelarSenha() {
+  if (!trocaObrigatoria) { dlgSenha.close(); return; }
+  trocaObrigatoria = false;
+  if (dlgSenha.open) dlgSenha.close();
+  fecharSessao();
+  bloquearApp();
 }
 
 /* ---------- Aviso de versão nova (depois do login) ---------- */
@@ -1286,10 +1300,10 @@ let avisoVersaoAberto = false;
 async function avisoVersaoNova() {
   if (avisoVersaoAberto || versaoVista() === APP_VERSAO) return;
   if (document.body.classList.contains("travado")) return;
-  if (document.getElementById("dlgConf").open) return;
+  if (document.getElementById("dlgConf").open || dlgSenha.open) return;
   avisoVersaoAberto = true;
   const escolha = await perguntar(`Anota Conta atualizado para a v${APP_VERSAO}`,
-    "Novidade: no Resumo, toque num ano do Total anual para ver as contas daquele ano (por exemplo 2023). Para voltar, toque em Voltar pro ano atual. " +
+    "Novidade: agora você cria sua própria senha no primeiro acesso e pode trocá-la em Mais › Trocar senha. Não há como recuperar uma senha esquecida. " +
     "Recomendamos exportar seu backup (JSON ou Excel). Se seus dados não aparecerem, importe o backup em Mais.", [
       {rotulo: "Exportar backup agora", classe: "main", valor: "json"},
       {rotulo: "Baixar Excel", classe: "ghost", valor: "excel"},
@@ -1316,7 +1330,11 @@ async function sairApp() {
   bloquearApp();
 }
 
-function abrirTrocaSenha() {
+function abrirTrocaSenha(obrigatoria) {
+  trocaObrigatoria = !!obrigatoria;
+  document.getElementById("senhaTitulo").textContent = trocaObrigatoria ? "Crie sua senha" : "Trocar senha";
+  document.getElementById("senhaIntro").hidden = !trocaObrigatoria;
+  document.getElementById("senhaCancelar").textContent = trocaObrigatoria ? "Sair" : "Cancelar";
   document.getElementById("fSenhaAtual").value = "";
   document.getElementById("fSenhaNova").value = "";
   document.getElementById("fSenhaNova2").value = "";
@@ -1342,6 +1360,10 @@ async function salvarTrocaSenha(e) {
     er.textContent = "A confirmação não é igual à nova senha.";
     er.hidden = false; return;
   }
+  if (nova === atual) {
+    er.textContent = "A nova senha precisa ser diferente da senha atual.";
+    er.hidden = false; return;
+  }
   try {
     const ok = await trocarSenhaLocal(atual, nova);
     if (!ok) {
@@ -1351,11 +1373,15 @@ async function salvarTrocaSenha(e) {
       return;
     }
     abrirSessao();
+    const eraObrigatoria = trocaObrigatoria;
+    trocaObrigatoria = false;
     dlgSenha.close();
-    aviso("Senha alterada.");
+    aviso(eraObrigatoria ? "Senha criada. Bem-vindo!" : "Senha alterada.");
+    if (eraObrigatoria) setTimeout(avisoVersaoNova, 60);
   } catch (err) {
     er.textContent = err && err.message === "fraca"
       ? AUTH_REGRAS_MSG
+      : err && err.message === "igual" ? "A nova senha precisa ser diferente da senha atual."
       : "Não foi possível trocar a senha neste navegador.";
     er.hidden = false;
   }
@@ -1502,6 +1528,10 @@ atualizarLoginRodape();
 if (sessaoAberta()) desbloquearApp();
 else bloquearApp();
 
+// Na troca obrigatória, Esc não fecha o diálogo (só "Sair" ou salvar).
+dlgSenha.addEventListener("cancel", e => { if (trocaObrigatoria) e.preventDefault(); });
+dlgSenha.addEventListener("close", () => { if (trocaObrigatoria) cancelarSenha(); });
+
 /* Ações dos botões sem handlers inline (permite CSP estrita, sem 'unsafe-inline' em scripts). */
 (function ligarAcoes() {
   const dialogos = { dlg: () => dlg, dlgCat: () => dlgCat, dlgSenha: () => dlgSenha };
@@ -1525,7 +1555,7 @@ else bloquearApp();
     voltarAnoAtual: () => voltarAnoAtual(), exportarExcel: () => exportarExcel(),
     exportarBackup: () => exportarBackup(), abrirImportarExcel: () => abrirImportarExcel(),
     copiarProx: () => copiarProx(), abrirInstalar: () => abrirInstalar(),
-    abrirTrocaSenha: () => abrirTrocaSenha(), sairApp: () => sairApp(),
+    abrirTrocaSenha: () => abrirTrocaSenha(false), cancelarSenha: () => cancelarSenha(), sairApp: () => sairApp(),
     abrirTutorial: () => abrirTutorial(true), fecharTutorial: () => fecharTutorial(),
     somTutorial: () => somTutorial(), expandirTutorial: () => expandirTutorial()
   };

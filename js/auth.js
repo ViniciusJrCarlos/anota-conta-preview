@@ -73,6 +73,12 @@ function garantirSenhaPadrao() {
   return lerAuth();
 }
 
+/** true enquanto não houver senha criada pela pessoa (só a padrão). */
+function usandoSenhaPadrao() {
+  const a = garantirSenhaPadrao();
+  return !a || !!a.padrao;
+}
+
 function temSenhaLocal() {
   return !!garantirSenhaPadrao();
 }
@@ -109,6 +115,7 @@ async function criarSenhaLocal(senha) {
 
 async function trocarSenhaLocal(atual, nova) {
   if (!(await verifyLocal(atual))) return false;
+  if (atual === nova) throw new Error("igual");
   await criarSenhaLocal(nova);
   return true;
 }
