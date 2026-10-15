@@ -1526,7 +1526,8 @@ else bloquearApp();
     exportarBackup: () => exportarBackup(), abrirImportarExcel: () => abrirImportarExcel(),
     copiarProx: () => copiarProx(), abrirInstalar: () => abrirInstalar(),
     abrirTrocaSenha: () => abrirTrocaSenha(), sairApp: () => sairApp(),
-    abrirTutorial: () => abrirTutorial(), fecharTutorial: () => fecharTutorial()
+    abrirTutorial: () => abrirTutorial(true), fecharTutorial: () => fecharTutorial(),
+    somTutorial: () => somTutorial(), expandirTutorial: () => expandirTutorial()
   };
   document.addEventListener("click", e => {
     const el = e.target.closest("[data-act]");
@@ -1545,21 +1546,45 @@ else bloquearApp();
   });
 })();
 
-/* ---------- Tutorial em vídeo: abre sozinho só na primeira visita; depois, em Mais > Ver tutorial ---------- */
-function abrirTutorial() {
+/* ---------- Tutorial em vídeo: abre sozinho (mudo) só na primeira visita; depois, em "Ver tutorial" (com som) ---------- */
+function abrirTutorial(comSom) {
   const box = document.getElementById("tutorial"), v = document.getElementById("tutorialVideo");
   if (!v.getAttribute("src")) v.src = "video/tutorial.mp4";
   v.currentTime = 0;
+  v.muted = !comSom;
   box.hidden = false;
+  try { localStorage.setItem(TUTORIAL_KEY, "1"); } catch (_) {}
   const p = v.play();
-  if (p && p.catch) p.catch(() => {});
+  if (p && p.catch) p.catch(() => { if (!v.muted) { v.muted = true; v.play().catch(() => {}); } atualizarSom(); });
+  atualizarSom();
+}
+function atualizarSom() {
+  document.getElementById("tutorialSom").hidden = !document.getElementById("tutorialVideo").muted;
+}
+function somTutorial() {
+  const v = document.getElementById("tutorialVideo");
+  v.muted = false;
+  if (v.paused) v.play().catch(() => {});
+  atualizarSom();
+}
+function expandirTutorial() {
+  const v = document.getElementById("tutorialVideo");
+  if (v.requestFullscreen) v.requestFullscreen().catch(() => {});
+  else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
+  else if (v.webkitEnterFullscreen) v.webkitEnterFullscreen();
 }
 function fecharTutorial() {
   const box = document.getElementById("tutorial");
   if (box.hidden) return;
-  document.getElementById("tutorialVideo").pause();
+  const v = document.getElementById("tutorialVideo");
+  v.pause();
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
   box.hidden = true;
   try { localStorage.setItem(TUTORIAL_KEY, "1"); } catch (_) {}
 }
-document.getElementById("tutorialVideo").addEventListener("ended", fecharTutorial);
-try { if (!localStorage.getItem(TUTORIAL_KEY)) abrirTutorial(); } catch (_) {}
+(function () {
+  const v = document.getElementById("tutorialVideo");
+  v.addEventListener("ended", fecharTutorial);
+  v.addEventListener("volumechange", atualizarSom);
+})();
+try { if (!localStorage.getItem(TUTORIAL_KEY)) abrirTutorial(false); } catch (_) {}

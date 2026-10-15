@@ -16,7 +16,11 @@
     <div class="tutorial-card">
       <button type="button" class="tutorial-x" aria-label="Fechar tutorial" data-act="fecharTutorial">&times;</button>
       <video id="tutorialVideo" muted playsinline preload="none"></video>
-      <button type="button" class="btn main tutorial-pular" data-act="fecharTutorial">Pular</button>
+      <div class="tutorial-acoes">
+        <button type="button" class="btn tutorial-som" id="tutorialSom" data-act="somTutorial" hidden>🔊 Ativar som</button>
+        <button type="button" class="btn tutorial-expandir" data-act="expandirTutorial">⛶ Expandir</button>
+        <button type="button" class="btn main tutorial-pular" data-act="fecharTutorial">Pular</button>
+      </div>
     </div>
   </div>
   <section id="login" class="login" aria-label="Tela de acesso">
